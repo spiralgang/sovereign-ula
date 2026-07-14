@@ -18,6 +18,19 @@ only swap `applicationId` so it installs separately.
 - Arch Linux as the default distribution.
 - Billing disabled (no `com.android.vending.BILLING`).
 
+## How the rebrand is assembled (context)
+This is a **repackage + rebrand of the ULA dex, not a from-scratch app**. The deliverable is ONE
+separate app (`com.sovereign.edgepanel`) carrying OUR name/icon/settings/edge-panel that still
+RUNS UserLAnd's runtime (Termux/ULA `ServerService`, `UlaDocProvider`, filesystem, terminal) —
+not merely a settings shell. We keep the entire tech.ula runtime intact and only swap
+`applicationId` (plus add the unique features above) so it installs distinctly from `tech.ula`.
+
+The original blocker: assembling a renamed Android app needs `android.jar` + `d8`/`aapt2` and,
+to rename the package across the dex, `baksmali`/`smali`. That toolchain is absent in this local
+env (local `aapt2` crashes on a missing `lib7z.so`). **Resolution: the build is outsourced to
+GitHub Actions** — the runner has the full SDK + network, so Gradle assemble + sign + release
+happens there, not locally. Don't try to compile the APK on this machine; push and let CI do it.
+
 ## First, read these
 - `RULES.md` — hard constraints (toolchain versions, signing, what must not break).
 - `PLANS.md` — goal, pipeline, current status, remaining work.
