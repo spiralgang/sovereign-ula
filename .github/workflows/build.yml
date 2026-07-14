@@ -23,10 +23,9 @@ jobs:
           distribution: temurin
           java-version: '8'
 
-      - name: Set up Android SDK (manual, JDK 8 compatible)
+      - name: Set up Android SDK (manual, pinned old platform to satisfy AGP 3.4.3)
         run: |
           set -e
-          export JAVA_HOME=$JAVA_HOME
           SDK=/opt/android-sdk
           mkdir -p $SDK/cmdline-tools
           curl -sL https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -o cmdtools.zip
@@ -35,7 +34,14 @@ jobs:
           export ANDROID_HOME=$SDK
           export PATH=$SDK/cmdline-tools/latest/bin:$PATH
           yes | sdkmanager --sdk_root=$SDK --licenses >/dev/null || true
-          sdkmanager --sdk_root=$SDK "platform-tools" "platforms;android-28" "build-tools;28.0.3"
+          # build-tools 28.0.3 (no schema issue)
+          sdkmanager --sdk_root=$SDK "platform-tools" "build-tools;28.0.3"
+          # Pin OLD android-28 platform (r06, pre "extension-level" metadata) so AGP 3.4.3 aapt2 parses it
+          curl -sL https://dl.google.com/android/repository/platform-28_r06.zip -o plat28.zip
+          mkdir -p $SDK/platforms
+          unzip -q plat28.zip -d $SDK/platforms
+          mv $SDK/platforms/android-28 $SDK/platforms/android-28.new 2>/dev/null || true
+          ls $SDK/platforms
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
 
       - name: Grant execute permission for gradlew
