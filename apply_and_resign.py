@@ -5,7 +5,7 @@ the Gemini plan specified), rebuilds with apktool, re-signs with the local keyst
 """
 import os, re, subprocess, sys
 
-TC = "/home/spiralgang/toolchain"
+TC = os.getenv("TOOLCHAIN_DIR", os.path.expanduser("~/toolchain"))
 DEC = os.path.join(TC, "work/ula_decoded")  # apktool-created root (has apktool.yml)
 MANIFEST = os.path.join(DEC, "unknown/ula/AndroidManifest.xml")
 KEYSTORE = os.path.join(TC, "keys/release.keystore")
