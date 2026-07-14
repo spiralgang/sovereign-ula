@@ -62,7 +62,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
 
         findPreference<Preference>("sov_manage_storage")?.setOnPreferenceClickListener {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (Build.VERSION.SDK_INT >= 30) {
                 // API 30+ dedicated screen (constant not present on SDK 29)
                 startActivity(Intent("android.settings.MANAGE_APP_ALL_FILES_ACCESS_PERMISSION",
                         Uri.parse("package:$pkg")))
