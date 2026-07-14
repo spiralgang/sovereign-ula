@@ -23,8 +23,20 @@ jobs:
           distribution: temurin
           java-version: '8'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Set up Android SDK (manual, JDK 8 compatible)
+        run: |
+          set -e
+          export JAVA_HOME=$JAVA_HOME
+          SDK=/opt/android-sdk
+          mkdir -p $SDK/cmdline-tools
+          curl -sL https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -o cmdtools.zip
+          unzip -q cmdtools.zip -d $SDK/cmdline-tools
+          mv $SDK/cmdline-tools/cmdline-tools $SDK/cmdline-tools/latest
+          export ANDROID_HOME=$SDK
+          export PATH=$SDK/cmdline-tools/latest/bin:$PATH
+          yes | sdkmanager --sdk_root=$SDK --licenses >/dev/null || true
+          sdkmanager --sdk_root=$SDK "platform-tools" "platforms;android-30" "build-tools;30.0.3"
+          echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
