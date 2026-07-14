@@ -84,13 +84,11 @@ android {
             versionNameSuffix "-beta-$defaultConfig.versionCode"
             debuggable false
             minifyEnabled false
-            signingConfig signingConfigs.beta
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
         release {
             debuggable false
             minifyEnabled false
-            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
