@@ -25,12 +25,15 @@
 	</uses-permission>
 	<uses-permission android:name="android.permission.READ_PHONE_STATE">
 	</uses-permission>
+<!-- Move the activity inside the application tag -->
+	<application android:theme="@7F130007" android:label="@7F12002D" android:icon="@7F0E0000" android:allowBackup="true" android:supportsRtl="true" android:banner="@7F08005E" android:extractNativeLibs="true" android:fullBackupContent="@7F150000" android:roundIcon="@7F0E0002" android:appComponentFactory="androidx.core.app.CoreComponentFactory">
 		<activity android:name="tech.ula.SettingsActivity" android:exported="true" android:label="Settings">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN"/>
 				<category android:name="android.intent.category.LAUNCHER"/>
 			</intent-filter>
 		</activity>
+		<activity android:name="tech.ula.MainActivity" android:launchMode="2">
 
 	<application android:theme="@7F130007" android:label="@7F12002D" android:icon="@7F0E0000" android:allowBackup="true" android:supportsRtl="true" android:banner="@7F08005E" android:extractNativeLibs="true" android:fullBackupContent="@7F150000" android:roundIcon="@7F0E0002" android:appComponentFactory="androidx.core.app.CoreComponentFactory">
 		<activity android:name="tech.ula.MainActivity" android:launchMode="2">
