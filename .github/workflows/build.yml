@@ -34,7 +34,7 @@ jobs:
           export ANDROID_HOME=$SDK
           export PATH=$SDK/cmdline-tools/latest/bin:$PATH
           yes | sdkmanager --sdk_root=$SDK --licenses >/dev/null || true
-          sdkmanager --sdk_root=$SDK "platform-tools" "build-tools;28.0.3"
+          sdkmanager --sdk_root=$SDK "platform-tools" "build-tools;28.0.3" "ndk;21.4.7075529"
           curl -sL https://dl.google.com/android/repository/platform-28_r06.zip -o plat28.zip
           curl -sL https://dl.google.com/android/repository/platform-29_r04.zip -o plat29.zip
           mkdir -p $SDK/platforms
@@ -49,8 +49,12 @@ jobs:
 
       - name: Build release APK (assembleRelease)
         env:
-          ANDROID_NDK_HOME: ""
-        run: ./gradlew assembleRelease --no-daemon
+          ANDROID_HOME: /opt/android-sdk
+          ANDROID_NDK_HOME: /opt/android-sdk/ndk/21.4.7075529
+        run: |
+          export ANDROID_HOME=/opt/android-sdk
+          export ANDROID_NDK_HOME=/opt/android-sdk/ndk/21.4.7075529
+          ./gradlew assembleRelease --no-daemon
 
       - name: Decode signing keystore
         run: echo "${{ secrets.SOVEREIGN_KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
