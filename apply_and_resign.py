@@ -73,7 +73,7 @@ def resign():
         "java", "-jar",
         TC + "/rootfs/usr/share/java/apksigner.jar",
         "sign", "--ks", KEYSTORE, "--ks-key-alias", "ula",
-        "--ks-pass", "pass:ula123", "--key-pass", "pass:ula123",
+        "--ks-pass", f"pass:{os.getenv('KS_PASS', 'ula123')}", "--key-pass", f"pass:{os.getenv('KEY_PASS', 'ula123')}",
         "--out", FINAL_APK, OUT_APK,
     ], env=env, check=True)
     print(f"[sign] signed APK -> {FINAL_APK}")
