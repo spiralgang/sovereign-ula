@@ -349,123 +349,55 @@
     <uses-permission android:name="android.permission.WRITE_SMS" />
     <uses-permission android:name="android.permission.WRITE_SOCIAL_STREAM" />
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
-    <uses-permissionHere’s the **full alphabetically sorted XML permissions list** (continued from where it left off). This is the **complete set** of all unique permissions extracted from your file, formatted for direct use in your `AndroidManifest.xml`:
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="tech.ula" android:versionCode="326557" android:versionName="2.5.14">
+    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="29" />
 
----
-
-```xml
-    <!-- W (Continued) -->
-    <uses-permission android:name="android.permission.WRITE_USER_DICTIONARY" />
-
-    <!-- Samsung Knox Permissions -->
-    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_APP_MGMT" />
-    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_APP_SEPARATION" />
-    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_CONTAINER" />
-    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_ENTERPRISE_DEVICE_ADMIN" />
-    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_HW_CONTROL" />
-    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_KIOSK_MODE" />
-    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_LOCATION" />
-    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_RESTRICTION_MGMT" />
-    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_SECURITY" />
-
-    <!-- Samsung-Specific Permissions -->
-    <uses-permission android:name="com.samsung.android.appseparation.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
-    <uses-permission android:name="com.samsung.android.carrier.permission.UPDATE_CARRIER" />
-    <uses-permission android:name="com.samsung.android.fotaclient.permission.FOTA" />
-    <uses-permission android:name="com.samsung.android.kgclient.permission.ACCESS" />
-    <uses-permission android:name="com.samsung.android.launcher.permission.WRITE_SETTINGS" />
-    <uses-permission android:name="com.samsung.android.sdm.config.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
-    <uses-permission android:name="com.samsung.android.sdm.config.permission.RECEIVE_CONFIG_CHANGED" />
-    <uses-permission android:name="com.samsung.permission.READ_DW_DATA" />
-
-    <!-- Sec-Specific Permissions -->
-    <uses-permission android:name="com.sec.android.EXCEPTION_AUTORUN_DEFAULT_OFF" />
-    <uses-permission android:name="com.sec.android.app.SecSetupWizard.permission.SHOW_SETUP_WIZARD" />
-    <uses-permission android:name="com.sec.android.fido.uaf.asm.permissions.FIDO_UAF_ASM" />
-    <uses-permission android:name="com.sec.android.fido.uaf.asm.permissions.MIGRATION" />
-    <uses-permission android:name="com.sec.android.fido.uaf.client.permissions.FIDO_UAF_CLIENT_PRIVILEGED" />
-    <uses-permission android:name="com.sec.android.provider.badge.permission.READ" />
-    <uses-permission android:name="com.sec.android.provider.badge.permission.WRITE" />
-    <uses-permission android:name="com.sec.mhs.smarttethering.RECEIVE_SMARTTETHERING" />
-    <uses-permission android:name="com.sec.permission.preconfig" />
-    <uses-permission android:name="com.sec.spp.permission.TOKEN_cc1de5b009a732084879b12fab52f456bc6eac0cc0bdc5d9330ec8034242c9ec9a55ec20b7ea6b631632fc9b0e8770b13026dc2612dae8ca3593134ceef544677d1dba3b5606cccafd74eb7a152dc8c5c0bfa6f4ea26d022046d00276d1bb953a9c817172f8415e88dc0af6fa098c2b80b4394709224ad94c06059802835d641" />
-
-    <!-- Shizuku Permissions -->
-    <uses-permission android:name="moe.shizuku.manager.permission.MANAGER" />
-
-    <!-- Verizon-Specific Permissions -->
-    <uses-permission android:name="com.verizon.api.ACCESS" />
-    <uses-permission android:name="com.verizon.mips.services.COMPONENT_STATUS" />
-    <uses-permission android:name="com.verizon.mips.services.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
-    <uses-permission android:name="com.verizon.services.eps.EPS_SWITCH_ENV" />
-    <uses-permission android:name="com.verizon.svcs.fdo.FA_SWITCH_ENV" />
-    <uses-permission android:name="com.verizon.vzwavs.mvs.permission.WRITE" />
-    <uses-permission android:name="com.verizon.vzwavs.permission.READ" />
-    <uses-permission android:name="com.vzw.APNPERMISSION" />
-    <uses-permission android:name="com.vzw.services.lc.SWITCH_ENV" />
-
-    <!-- Other Third-Party Permissions -->
-    <uses-permission android:name="com.wallet.crypto.trustapp.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
-    <uses-permission android:name="net.kollnig.missioncontrol.github.permission.ADMIN" />
-    <uses-permission android:name="org.fidoalliance.uaf.permissions.FIDO_CLIENT" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.BIND_DEVICE_ADMIN" tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.SET_DEBUG_APP" tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <uses-permission android:name="android.permission.ACTION_MANAGE_OVERLAY_PERMISSION" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-
-</manifest>
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
 
     <application
         android:name=".SovereignApplication"
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
+        
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.MyApplication">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <activity android:name="tech.ula.SettingsActivity" android:exported="true" />
+
         <service
             android:name="com.example.services.OmniAccessibilityService"
-            android:exported="false"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/accessibility_service_config" />
         </service>
 
         <receiver
             android:name="com.example.receivers.OmniDeviceAdminReceiver"
             android:exported="true"
             android:permission="android.permission.BIND_DEVICE_ADMIN">
-            <meta-data
-                android:name="android.app.device_admin"
-                android:resource="@xml/device_admin_receiver" />
+            <meta-data android:name="android.app.device_admin" android:resource="@xml/device_admin_receiver" />
             <intent-filter>
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
             </intent-filter>
         </receiver>
     </application>
-
-</manifest>
-	</application>
 </manifest>
