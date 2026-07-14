@@ -63,7 +63,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         findPreference<Preference>("sov_manage_storage")?.setOnPreferenceClickListener {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                // API 30+ dedicated screen (constant not present on SDK 29)
+                startActivity(Intent("android.settings.MANAGE_APP_ALL_FILES_ACCESS_PERMISSION",
                         Uri.parse("package:$pkg")))
             } else {
                 Toast.makeText(activity, "Not required below Android 11", Toast.LENGTH_SHORT).show()

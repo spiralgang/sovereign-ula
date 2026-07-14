@@ -16,7 +16,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Button
 import tech.ula.R
-
+import tech.ula.MainActivity
 /**
  * Foreground service that draws the Sovereign settings edge-panel overlay.
  * Requires SYSTEM_ALERT_WINDOW (granted via the settings screen).
