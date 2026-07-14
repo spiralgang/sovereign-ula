@@ -1,4 +1,4 @@
-# Sovereign Ula ft sovereign edgepanel services
+# Sovereign Ula feat. 'sovereign edgepanel services'
 
 A **separate Android app** (package `com.sovereign.ula`) — **FEATURING ('sovereign-edgepanel-services')** that rebrands the
 **UserLAnd (`tech.ula`) runtime** under our own name, icon, and package — while keeping
