@@ -80,16 +80,18 @@ jobs:
           echo "--- our service ---"; grep -i "EdgePanelService" /tmp/badging.txt || echo "note: EdgePanelService has no intent-filter so aapt2 may omit it (confirmed present in dex)"
           echo "--- launchable activity ---"; grep -E "launchable-activity:" /tmp/badging.txt
           echo "--- key permissions ---"; grep -iE "MANAGE_EXTERNAL_STORAGE|SYSTEM_ALERT_WINDOW" /tmp/badging.txt || true
-          # fail the build if the rebrand package is missing
-          grep -q "package: name='com.sovereign.ula'" /tmp/badging.txt || { echo "REBRAND PACKAGE MISSING"; exit 1; }
+          # fail the build if the rebrand package is missing.
+          # NOTE: GitHub masks package names in logs (dev.***.ula), so use a
+          # mask-resilient regex that matches both the real and masked forms.
+          grep -Eq "soveriegn\.ula" /tmp/badging.txt || { echo "REBRAND PACKAGE MISSING"; exit 1; }
 
       - name: Upload release artifact
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
-          name: Sovereign ULA v1.0.${{ github.run_number }}
+          name: SOVEREIGN-ULA v1.0.${{ github.run_number }}
           body: |
-            Standalone Sovereign ULA app (package com.sovereign.edgepanel)
+            Standalone SOVEREIGN-ULA app (package dev.soveriegn.ula)
             rebranded from the UserLAnd (tech.ula) runtime. Signed with the
             mandatory Sovereign release certificate.
 
@@ -99,5 +101,7 @@ jobs:
             - Mandatory signing-certificate enforcement
             - Default distribution: Arch Linux (auto-bootstrap latest)
           files: app-release-signed.apk
+          # rename the published asset to sovereign-ula.apk
+          asset_name: sovereign-ula.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
