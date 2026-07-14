@@ -1,5 +1,5 @@
 <resources>                                                         <!-- Translators, pay attention to these notes! --> 
-    <string name="app_name">Sovereign ULA</string>
+    <string name="app_name">SOVEREIGN-ULA</string>
     <string name="welcome">Welcome to UserLAnd!</string>
     <string name="permission_request_code">1000</string>
 

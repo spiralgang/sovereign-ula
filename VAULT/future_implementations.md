@@ -2,7 +2,7 @@
 
 This file is the living roadmap for the Sovereign ULA app. The GOAL is the
 **Sovereign ULA app** (rebranded UserLAnd / tech.ula runtime, package
-`com.sovereign.edgepanel`). The unique features we ship on top are the Sovereign
+`dev.soveriegn.ula`). The unique features we ship on top are the Sovereign
 Edge Panel settings, the floating edge-panel overlay, mandatory signing
 enforcement, billing-off, and Arch as the default distribution. Everything below
 is future work layered onto that base.

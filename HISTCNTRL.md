@@ -5,7 +5,7 @@ future session can reconstruct intent without re-deriving it.
 
 ## Core decision (the goal, stated once)
 This is a **repackage + rebrand of the ULA dex, not a from-scratch app**.
-Deliverable: ONE separate app, package `com.sovereign.edgepanel`, carrying OUR
+Deliverable: ONE separate app, package `dev.soveriegn.ula`, carrying OUR
 name / icon / full settings / edge-panel, that still **RUNS UserLAnd's runtime**
 (Termux/ULA `ServerService`, `UlaDocProvider`, filesystem, terminal). It is NOT a
 settings shell — it MUST embed the ULA runtime AND our settings + edge panel.
@@ -27,7 +27,7 @@ The GitHub workflow will:
 1. Download the original ULA APK (staged in repo as `base/ula-app.zip`).
 2. Decode with `apktool` (on the runner, apktool emits smali normally — the
    earlier local failure was a quirk).
-3. Rename `tech.ula` -> `com.sovereign.edgepanel` across smali + manifest +
+3. Rename `tech.ula` -> `dev.soveriegn.ula` across smali + manifest +
    resources.
 4. Inject our settings / edge-panel.
 5. Rebuild with `apktool`, sign with the repo-secret keystore, release.
@@ -38,7 +38,7 @@ the runner), or via apt/brew — do NOT rely on the broken local copy.
 ## Local job (what was committed)
 1. `.github/workflows/build.yml` — the build / rename / sign / release pipeline.
 2. `base/ula-app.zip` — the original ULA APK (staged for reference / decode).
-3. `overlay/AndroidManifest.xml` — our manifest: package `com.sovereign.edgepanel`,
+3. `overlay/AndroidManifest.xml` — our manifest: package `dev.soveriegn.ula`,
    our app name, full permission suite, settings + edge-panel service,
    `billing-off` + `signing-required` meta. ULA's runtime components
    (`MainActivity`, `ServerService`, `UlaDocProvider`, Termux activity/service)
@@ -49,7 +49,7 @@ the runner), or via apt/brew — do NOT rely on the broken local copy.
 
 ## Actual resolution used (deviation from apktool plan)
 We ultimately built via **fork-the-source** (same outcome, less fragility): fork
-UserLAnd, change only `applicationId` to `com.sovereign.edgepanel`, add the
+UserLAnd, change only `applicationId` to `dev.soveriegn.ula`, add the
 Sovereign features (settings category, EdgePanelService overlay,
 SovereignApplication signing enforcement, Arch default, billing-off), then let
 GitHub Actions run `./gradlew assembleRelease` + `apksigner` + Release. See
@@ -58,6 +58,6 @@ approach above remains valid if a pure-APK rebrand is ever required.
 
 ## Status
 - Build GREEN on `ubuntu-latest`; signed APK published to GitHub Releases
-  (package `com.sovereign.edgepanel`, launches `tech.ula.MainActivity`).
+  (package `dev.soveriegn.ula`, launches `tech.ula.MainActivity`).
 - Open: optional in-app "update available" prompt (Release feed + cert-verified
   install).

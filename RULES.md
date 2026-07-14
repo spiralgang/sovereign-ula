@@ -2,7 +2,7 @@
 
 ## Hard constraints
 - This repo is a FORK of CypherpunkArmory/UserLAnd, rebranded to a separate app
-  named **Sovereign ULA** (applicationId `com.sovereign.edgepanel`). The goal is the
+  named **SOVEREIGN-ULA** (applicationId `dev.soveriegn.ula`). The goal is the
   Sovereign ULA app; the Sovereign Edge Panel (settings + overlay) is a unique
   feature we add on top of the stock UserLAnd (tech.ula) runtime.
 - Build toolchain is OLD and fragile:

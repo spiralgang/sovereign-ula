@@ -3,7 +3,7 @@
 ## Goal
 **The Sovereign ULA app is the goal**: a fully rebranded build of the UserLAnd
 (tech.ula) Linux-in-a-box runtime, packaged as a separate Android app under our
-name (package `com.sovereign.edgepanel`, app name "Sovereign ULA").
+name (package `dev.soveriegn.ula`, app name "SOVEREIGN-ULA").
 
 The **unique features** we add on top of the stock UserLAnd runtime are:
 - Our own **Sovereign settings screen** (a full "Sovereign Edge Panel" preference
@@ -27,7 +27,7 @@ separate installable app. This is the correct, reproducible approach.
 
 ## How the rebrand is assembled (historical context + the actual blocker)
 - This is a **repackage + rebrand of the ULA dex, not a from-scratch app**. The goal is ONE
-  separate app (`com.sovereign.edgepanel`) with OUR name/icon/settings/edge-panel that still
+  separate app (`dev.soveriegn.ula`) with OUR name/icon/settings/edge-panel that still
   RUNS UserLAnd's runtime (Termux/ULA services, filesystem, terminal) — not just a settings
   shell. So we take the ULA app, rebrand it (new package, our name/icon, our full settings +
   edge panel), keep its entire runtime intact, and ship that as a distinct APK Android
@@ -40,14 +40,14 @@ separate installable app. This is the correct, reproducible approach.
 - **Resolution: outsource assembly to GitHub Actions.** The runner has the full SDK + network,
   so the build happens there. The original plan was: workflow downloads the base ULA APK,
   decodes with apktool (emits smali on a normal machine), renames `tech.ula` ->
-  `com.sovereign.edgepanel` across smali + manifest + resources, injects our
+  `dev.soveriegn.ula` across smali + manifest + resources, injects our
   settings/edge-panel, rebuilds, signs, releases. We ultimately used the cleaner **fork-the-source**
   path (same outcome, less fragility), but the principle holds: the heavy lifting is done by
   runners, not this local env.
 
 ## Rebrand deliverables (what was committed)
 - `base/` — original ULA APK staged for reference.
-- `overlay/AndroidManifest.xml` — our manifest: package `com.sovereign.edgepanel`, our app name,
+- `overlay/AndroidManifest.xml` — our manifest: package `dev.soveriegn.ula`, our app name,
   full permission suite, settings + edge-panel service, `billing-off` + `signing-required` meta.
 - `overlay/res/...` — our settings `PreferenceScreen`, edge-panel layout, strings, icon, app name.
 - `.github/workflows/build.yml` — build / rename / sign / release pipeline.

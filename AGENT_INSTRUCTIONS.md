@@ -4,8 +4,8 @@ You are working in `spiralgang/sovereign-ula`.
 
 ## What this repo is
 **The goal is the Sovereign ULA app** — a rebrand of the open-source UserLAnd
-Android app (tech.ula runtime) into a separate app called **Sovereign ULA**
-(package `com.sovereign.edgepanel`). The stock UserLAnd runtime (terminal,
+Android app (tech.ula runtime) into a separate app called **SOVEREIGN-ULA**
+(package `dev.soveriegn.ula`). The stock UserLAnd runtime (terminal,
 filesystem/session management, ServerService, UlaDocProvider) is kept intact; we
 only swap `applicationId` so it installs separately.
 
@@ -20,7 +20,7 @@ only swap `applicationId` so it installs separately.
 
 ## How the rebrand is assembled (context)
 This is a **repackage + rebrand of the ULA dex, not a from-scratch app**. The deliverable is ONE
-separate app (`com.sovereign.edgepanel`) carrying OUR name/icon/settings/edge-panel that still
+separate app (`dev.soveriegn.ula`) carrying OUR name/icon/settings/edge-panel that still
 RUNS UserLAnd's runtime (Termux/ULA `ServerService`, `UlaDocProvider`, filesystem, terminal) —
 not merely a settings shell. We keep the entire tech.ula runtime intact and only swap
 `applicationId` (plus add the unique features above) so it installs distinctly from `tech.ula`.
