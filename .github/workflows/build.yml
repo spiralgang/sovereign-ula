@@ -34,7 +34,7 @@ jobs:
           export ANDROID_HOME=$SDK
           export PATH=$SDK/cmdline-tools/latest/bin:$PATH
           yes | sdkmanager --sdk_root=$SDK --licenses >/dev/null || true
-          sdkmanager --sdk_root=$SDK "platform-tools" "build-tools;28.0.3" "ndk;21.4.7075529"
+          sdkmanager --sdk_root=$SDK "platform-tools" "build-tools;29.0.3" "ndk;21.4.7075529"
           curl -sL https://dl.google.com/android/repository/platform-28_r06.zip -o plat28.zip
           curl -sL https://dl.google.com/android/repository/platform-29_r04.zip -o plat29.zip
           mkdir -p $SDK/platforms

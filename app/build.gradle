@@ -13,7 +13,7 @@ apply plugin: 'jacoco'
 apply plugin: 'de.undercouch.download'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 29
 
     defaultConfig {
         // Version code is generated as time since June 1, 2019. These allows for constantly
@@ -22,7 +22,7 @@ android {
 
         applicationId "com.sovereign.edgepanel"
         minSdkVersion 21
-        targetSdkVersion 28
+        targetSdkVersion 29
         versionCode vcode
         versionName "2.8.3"
         
