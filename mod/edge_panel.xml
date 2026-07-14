@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/edge_panel"
+    android:layout_width="220dp"
+    android:layout_height="wrap_content"
+    android:layout_gravity="end|center_vertical"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="#CC000000"
+    android:elevation="6dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ULA Settings"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:paddingBottom="8dp" />
+
+    <Button
+        android:id="@+id/btn_open_settings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Open Full Settings" />
+
+    <Button
+        android:id="@+id/btn_enable_all_perms"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Enable All Permissions" />
+
+    <Button
+        android:id="@+id/btn_open_downloads"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Open Downloads" />
+
+    <Button
+        android:id="@+id/btn_toggle_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Toggle Overlay" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Billing: OFF | Signing cert: REQUIRED"
+        android:textColor="#AAAAAA"
+        android:textSize="12sp"
+        android:paddingTop="8dp" />
+</LinearLayout>
