@@ -1,27 +1,36 @@
-# Sovereign ULA — custom image / mod worktree
+# SOVEREIGN-ULA
 
-Working artifacts for the sovereign ULA Android app mod:
-- `env-toolchain.sh` — wires the rootless JDK17 + apktool + apksigner toolchain.
-- `run_ula_job.py` — calls Gemini `gemma-4-31b-it` (real LLM) on the app to
-  produce an edit plan (`mod/gemma_edit_plan.json`).
-- `mod/gen_settings.py` — generates the FULL settings `PreferenceScreen`
-  (enable-all-permissions, shared-storage/Downloads, billing-DISABLED,
-  mandatory signing cert, accessibility/overlay/install toggles).
-- `mod/edge_panel.xml` — Samsung-style swipe-out edge panel, filled with the
-  full settings suite (the minimal `tech.ula` edge panel, maxed out).
-- `mod/preferences_full.xml`, `mod/AndroidManifest.clean.xml` — manifest +
-  prefs ground truth.
-- `decoded/` — apktool decode of `ula-app.zip` (manifest, smali, res, assets).
+![SOVEREIGN-ULA](images/sov_hero.jpeg)
 
-## Build status
-- Decode: OK. Manifest is plain-text XML (non-standard APK) so apktool `b`
-  fails at manifest recompile — full rebuild needs Gradle/SDK or `aapt`
-  manifest-rebuild. Signing requires the release keystore (NOT committed;
-  set via GitHub secret / local file).
-- Do NOT push broken `.apk` outputs. Rebuild on GitHub runners or via the
-  documented toolchain, then sign with the keystore secret.
+**SOVEREIGN-ULA** is a rebrand of the UserLAnd (`tech.ula`) Linux-in-a-box runtime,
+packaged as a **separate Android app** under our own name, icon, and package
+(`dev.soveriegn.ula`). The full UserLAnd runtime stays intact (MainActivity,
+ServerService, UlaDocProvider, Termux activity/service) — it just installs and runs
+on its own, distinct from stock UserLAnd.
 
-## Rebuild toolchain (rootless, this env)
-source env-toolchain.sh   # needs rootfs/ (JDK17 from debs) + apktool.jar
-python3 run_ula_job.py     # regenerate the Gemini edit plan
-python3 mod/gen_settings.py
+## Unique features we add on top
+
+- **Sovereign settings screen** — enumerates the entire requested permission suite
+  with deep links into Android's per-permission screens.
+- **Sovereign Edge Panel** — a Samsung-style swipe-out edge panel (a slim handle on
+  the right screen edge that expands into the full settings panel) with buttons to
+  open settings, grant all permissions, manage all-files access, overlay permission,
+  accessibility, and Downloads.
+- **No funding popups** — the stock UserLAnd contribution/donation prompt is removed.
+- **In-app billing disabled** — no billing client is initialised.
+- **Mandatory signing certificate** — the app aborts unless signed by our release cert.
+- **Arch Linux** as the default / auto-bootstrap distribution.
+
+## How it's built
+
+Fork of UserLAnd; we change only `applicationId` to `dev.soveriegn.ula` and add the
+Sovereign features above. GitHub Actions (`.github/workflows/build.yml`) runs on
+`ubuntu-latest` with the full Android SDK + NDK, builds with Gradle, signs the APK
+with our release keystore, and publishes it as a GitHub Release. No local SDK is
+required — the heavy lifting happens on the runner.
+
+## Running it
+
+Install the APK from the latest **Release**. Android sees it as its own app, distinct
+from UserLAnd. Grant the requested permissions from Settings > App info; enable the
+edge panel and accessibility service from the in-app settings.

@@ -101,6 +101,12 @@
             android:enabled="false"
             app:iconSpaceReserved="false"/>
         <CheckBoxPreference
+            android:key="sov_accessibility_enabled"
+            android:title="@string/sov_accessibility_title"
+            android:summary="@string/sov_accessibility_summary"
+            android:defaultValue="false"
+            app:iconSpaceReserved="false"/>
+        <CheckBoxPreference
             android:key="sov_signing_required"
             android:title="@string/sov_signing_required_title"
             android:summary="@string/sov_signing_required_summary"
