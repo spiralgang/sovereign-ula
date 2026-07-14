@@ -1,4 +1,4 @@
-name: Build Sovereign EdgePanel
+name: Build Sovereign-Ula
 
 on:
   push:
