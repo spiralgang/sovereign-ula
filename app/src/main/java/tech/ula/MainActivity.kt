@@ -170,7 +170,9 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
             optInPrompter.showView()
         }
 
-        if (contributionPrompter.viewShouldBeShown()) {
+        // Sovereign build: contribution/funding prompt is disabled. No tech.ula
+        // donation popups are shown in this rebrand.
+        if (false && contributionPrompter.viewShouldBeShown()) {
             contributionPrompter.showView()
         }
 

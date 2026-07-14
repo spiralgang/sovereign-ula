@@ -94,6 +94,13 @@ class SettingsFragment : PreferenceFragmentCompat() {
             }
             true
         }
+
+        findPreference<Preference>("sov_accessibility_enabled")?.setOnPreferenceClickListener {
+            // Deep-link into Android's accessibility settings so the user can
+            // toggle the Sovereign accessibility service on.
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            true
+        }
     }
 
     override fun setDivider(divider: Drawable?) {
