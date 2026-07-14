@@ -48,7 +48,13 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build release APK (assembleRelease)
-        run: ./gradlew assembleRelease --no-daemon
+        env:
+          ANDROID_HOME: /opt/android-sdk
+          ANDROID_NDK_HOME: ""
+        run: |
+          export ANDROID_HOME=/opt/android-sdk
+          unset ANDROID_NDK_HOME
+          ./gradlew assembleRelease --no-daemon
 
       - name: Decode signing keystore
         run: |
