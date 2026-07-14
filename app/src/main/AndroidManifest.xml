@@ -97,8 +97,7 @@
 
         <service
             android:name="tech.ula.ui.EdgePanelService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse" />
+            android:exported="false" />
 
     </application>
 
