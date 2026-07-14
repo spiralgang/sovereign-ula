@@ -44,9 +44,34 @@ def edit_manifest():
         )
         additions.append("__SETTINGS_ACTIVITY__")
     perm_block = "\n".join(additions).replace("__SETTINGS_ACTIVITY__", settings)
-    # inject right after the last existing uses-permission (before <application)
-    if perm_block.strip():
-        txt = txt.replace("\n\t<application ", "\n" + perm_block + "\n\t<application ", 1)
+import xml.etree.ElementTree as ET
+
+def edit_manifest():
+    tree = ET.parse(MANIFEST)
+    root = tree.getroot()
+    
+    # Add missing permissions
+    existing_perms = {p.get('{http://schemas.android.com/apk/res/android}name') for p in root.findall('uses-permission')}
+    for p in NEW_PERMS:
+        if p not in existing_perms:
+            new_perm = ET.Element('uses-permission', {'android:name': p})
+            root.insert(0, new_perm)
+
+    # Add SettingsActivity if missing
+    if not root.findall(".//activity[@android:name='tech.ula.SettingsActivity']", namespaces={'android': 'http://schemas.android.com/apk/res/android'}):
+        app = root.find('application')
+        if app is not None:
+            activity = ET.SubElement(app, 'activity', {
+                'android:name': 'tech.ula.SettingsActivity',
+                'android:exported': 'true',
+                'android:label': 'Settings'
+            })
+            intent_filter = ET.SubElement(activity, 'intent-filter')
+            ET.SubElement(intent_filter, 'action', {'android:name': 'android.intent.action.MAIN'})
+            ET.SubElement(intent_filter, 'category', {'android:name': 'android.intent.category.LAUNCHER'})
+
+    tree.write(MANIFEST, encoding='utf-8', xml_declaration=True)
+    print("[edit] manifest updated using XML parser")
     open(MANIFEST, "w", encoding="utf-8").write(txt)
     print(f"[edit] manifest updated: +{len(NEW_PERMS)} perms considered, "
           f"SettingsActivity={'added' if 'SettingsActivity' in txt else 'present'}")
