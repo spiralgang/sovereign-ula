@@ -1,0 +1,70 @@
+name: Build Sovereign EdgePanel
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build release APK (assembleRelease)
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Decode signing keystore
+        run: |
+          echo "${{ secrets.SOVEREIGN_KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+
+      - name: Sign APK with apksigner
+        run: |
+          $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner sign \
+            --ks keystore.jks \
+            --ks-key-alias "${{ secrets.SOVEREIGN_KEY_ALIAS }}" \
+            --ks-pass pass:"${{ secrets.SOVEREIGN_KEYSTORE_PASSWORD }}" \
+            --key-pass pass:"${{ secrets.SOVEREIGN_KEY_PASSWORD }}" \
+            --out app-release-signed.apk \
+            app/build/outputs/apk/release/app-release-unsigned.apk
+
+      - name: Verify signature
+        run: |
+          $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner verify app-release-signed.apk && echo "SIGNATURE OK"
+
+      - name: Upload release artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Sovereign EdgePanel v1.0.${{ github.run_number }}
+          body: |
+            Standalone Sovereign EdgePanel app (package com.sovereign.edgepanel)
+            rebranded from UserLAnd (tech.ula) runtime. Firmware-independent APK,
+            signed with the mandatory Sovereign release certificate.
+
+            - Full permission suite (incl. MANAGE_EXTERNAL_STORAGE, SYSTEM_ALERT_WINDOW)
+            - Sovereign settings screen + floating edge-panel overlay
+            - In-app billing disabled
+            - Mandatory signing-certificate enforcement
+            - Default distribution: Arch Linux (auto-bootstrap latest)
+          files: app-release-signed.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

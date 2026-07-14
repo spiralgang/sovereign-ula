@@ -20,7 +20,10 @@
     </string-array>
 
     <string-array name="supported_distributions">
+        <item>Arch</item>
         <item>Debian</item>
+        <item>Ubuntu</item>
+        <item>Kali</item>
     </string-array>
 
     <string-array name="supported_services">

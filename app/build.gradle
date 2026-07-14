@@ -20,7 +20,7 @@ android {
         // sequential deployments to both production and beta tracks.
         def vcode = (int)(((new Date().getTime()/1000) - 1559347200) / 10)
 
-        applicationId "tech.ula"
+        applicationId "com.sovereign.edgepanel"
         minSdkVersion 21
         targetSdkVersion 30
         versionCode vcode

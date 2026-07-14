@@ -92,6 +92,16 @@ class FilesystemEditFragment : Fragment() {
             spinner_filesystem_type.adapter = ArrayAdapter(activityContext,
                     android.R.layout.simple_spinner_dropdown_item,
                     distributionList.map { it.capitalize() })
+            if (!editExisting) {
+                for (i in 0 until spinner_filesystem_type.adapter.count) {
+                    if (spinner_filesystem_type.adapter.getItem(i).toString()
+                                    .toLowerCase(Locale.ENGLISH) == "arch") {
+                        spinner_filesystem_type.setSelection(i)
+                        filesystem.distributionType = "arch"
+                        break
+                    }
+                }
+            }
         }
         if (editExisting) {
             for (i in 0 until spinner_filesystem_type.adapter.count) {

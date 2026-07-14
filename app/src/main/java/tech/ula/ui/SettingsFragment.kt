@@ -1,10 +1,15 @@
 package tech.ula.ui
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.widget.Toast
 import tech.ula.R
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.Preference
@@ -36,6 +41,57 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 apply()
                 true
             }
+        }
+
+        wireSovereignPreferences()
+    }
+
+    private fun wireSovereignPreferences() {
+        val pkg = activity!!.packageName
+
+        findPreference<Preference>("sov_enable_all_perms")?.setOnPreferenceClickListener {
+            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:$pkg")))
+            true
+        }
+
+        findPreference<Preference>("sov_open_downloads")?.setOnPreferenceClickListener {
+            val i = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+            startActivity(i)
+            true
+        }
+
+        findPreference<Preference>("sov_manage_storage")?.setOnPreferenceClickListener {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                        Uri.parse("package:$pkg")))
+            } else {
+                Toast.makeText(activity, "Not required below Android 11", Toast.LENGTH_SHORT).show()
+            }
+            true
+        }
+
+        findPreference<Preference>("sov_overlay_perm")?.setOnPreferenceClickListener {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:$pkg")))
+            }
+            true
+        }
+
+        findPreference<Preference>("sov_edge_panel_enabled")?.setOnPreferenceChangeListener { _, newValue ->
+            val enabled = newValue as Boolean
+            val svc = Intent(activity, EdgePanelService::class.java)
+            if (enabled) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    activity!!.startForegroundService(svc)
+                } else {
+                    activity!!.startService(svc)
+                }
+            } else {
+                activity!!.stopService(svc)
+            }
+            true
         }
     }
 

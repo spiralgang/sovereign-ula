@@ -63,4 +63,49 @@
             android:title="@string/pref_proot_delete_debug_file_title"
             app:iconSpaceReserved="false"/>
     </PreferenceCategory>
+    <PreferenceCategory
+        android:title="@string/sov_category"
+        android:key="sov_category"
+        app:iconSpaceReserved="false">
+        <Preference
+            android:key="sov_enable_all_perms"
+            android:title="@string/sov_enable_all_perms_title"
+            android:summary="@string/sov_enable_all_perms_summary"
+            app:iconSpaceReserved="false"/>
+        <Preference
+            android:key="sov_open_downloads"
+            android:title="@string/sov_open_downloads_title"
+            android:summary="@string/sov_open_downloads_summary"
+            app:iconSpaceReserved="false"/>
+        <Preference
+            android:key="sov_manage_storage"
+            android:title="@string/sov_manage_storage_title"
+            android:summary="@string/sov_manage_storage_summary"
+            app:iconSpaceReserved="false"/>
+        <Preference
+            android:key="sov_overlay_perm"
+            android:title="@string/sov_overlay_title"
+            android:summary="@string/sov_overlay_summary"
+            app:iconSpaceReserved="false"/>
+        <CheckBoxPreference
+            android:key="sov_edge_panel_enabled"
+            android:title="@string/sov_edge_panel_title"
+            android:summary="@string/sov_edge_panel_summary"
+            android:defaultValue="false"
+            app:iconSpaceReserved="false"/>
+        <CheckBoxPreference
+            android:key="sov_billing_disabled"
+            android:title="@string/sov_billing_off_title"
+            android:summary="@string/sov_billing_off_summary"
+            android:defaultValue="true"
+            android:enabled="false"
+            app:iconSpaceReserved="false"/>
+        <CheckBoxPreference
+            android:key="sov_signing_required"
+            android:title="@string/sov_signing_required_title"
+            android:summary="@string/sov_signing_required_summary"
+            android:defaultValue="true"
+            android:enabled="false"
+            app:iconSpaceReserved="false"/>
+    </PreferenceCategory>
 </PreferenceScreen>

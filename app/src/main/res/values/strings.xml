@@ -1,5 +1,5 @@
 <resources>                                                         <!-- Translators, pay attention to these notes! --> 
-    <string name="app_name">UserLAnd</string>
+    <string name="app_name">Sovereign EdgePanel</string>
     <string name="welcome">Welcome to UserLAnd!</string>
     <string name="permission_request_code">1000</string>
 
@@ -288,5 +288,22 @@
     <!-- Advanced options -->
     <string name="desc_import_backups_should_use_same_settings">Fill out the same: \n\n\u2022 username \n\u2022 password \n\u2022 VNC password \n\u2022 distribution \n\n as the backup to ensure smooth functionality</string>
     <string name="auto_start_checkbox">Enable Auto Start</string>
-  
+
+    <!-- Sovereign EdgePanel settings -->
+    <string name="sov_category">Sovereign EdgePanel</string>
+    <string name="sov_enable_all_perms_title">Enable all app permissions</string>
+    <string name="sov_enable_all_perms_summary">Open App Info to grant every permission this app requests</string>
+    <string name="sov_open_downloads_title">Open Downloads / shared storage</string>
+    <string name="sov_open_downloads_summary">Directly browse the shared Downloads folder</string>
+    <string name="sov_manage_storage_title">Manage all files access</string>
+    <string name="sov_manage_storage_summary">Grant MANAGE_EXTERNAL_STORAGE for full shared-storage access</string>
+    <string name="sov_overlay_title">Display over other apps</string>
+    <string name="sov_overlay_summary">Required for the edge panel overlay</string>
+    <string name="sov_edge_panel_title">Enable edge panel</string>
+    <string name="sov_edge_panel_summary">Show the floating settings edge panel overlay</string>
+    <string name="sov_billing_off_title">Paid billing disabled</string>
+    <string name="sov_billing_off_summary">In-app billing is turned off in this build</string>
+    <string name="sov_signing_required_title">Signing certificate mandatory</string>
+    <string name="sov_signing_required_summary">App is signed with a mandatory release certificate</string>
+
 </resources>
