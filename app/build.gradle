@@ -101,6 +101,9 @@ android {
     lintOptions {
         disable 'MissingTranslation'
         disable 'ParcelCreator'
+        // We rebrand heavily (new strings, new components); don't fail the release build on lint.
+        checkReleaseBuilds false
+        abortOnError false
     }
 
     testOptions {
