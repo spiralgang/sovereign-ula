@@ -1,5 +1,5 @@
 <resources>                                                         <!-- Translators, pay attention to these notes! --> 
-    <string name="app_name">Sovereign EdgePanel</string>
+    <string name="app_name">Sovereign ULA</string>
     <string name="welcome">Welcome to UserLAnd!</string>
     <string name="permission_request_code">1000</string>
 
@@ -289,8 +289,8 @@
     <string name="desc_import_backups_should_use_same_settings">Fill out the same: \n\n\u2022 username \n\u2022 password \n\u2022 VNC password \n\u2022 distribution \n\n as the backup to ensure smooth functionality</string>
     <string name="auto_start_checkbox">Enable Auto Start</string>
 
-    <!-- Sovereign EdgePanel settings -->
-    <string name="sov_category">Sovereign EdgePanel</string>
+    <!-- Sovereign Edge Panel (unique feature) settings -->
+    <string name="sov_category">Sovereign Edge Panel</string>
     <string name="sov_enable_all_perms_title">Enable all app permissions</string>
     <string name="sov_enable_all_perms_summary">Open App Info to grant every permission this app requests</string>
     <string name="sov_open_downloads_title">Open Downloads / shared storage</string>

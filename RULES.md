@@ -1,10 +1,10 @@
-# RULES.md — Sovereign EdgePanel build repo
+# RULES.md — Sovereign ULA build repo
 
 ## Hard constraints
-- This repo is a FORK of CypherpunkArmory/UserLAnd, rebranded to a separate app.
-- `applicationId` = `com.sovereign.edgepanel` (CHANGED). Java package stays `tech.ula`
-  (the runtime dex/classes are untouched — only the app identity differs). Do NOT rename
-  the `tech.ula` Java package; only rebrand via applicationId + manifest + resources.
+- This repo is a FORK of CypherpunkArmory/UserLAnd, rebranded to a separate app
+  named **Sovereign ULA** (applicationId `com.sovereign.edgepanel`). The goal is the
+  Sovereign ULA app; the Sovereign Edge Panel (settings + overlay) is a unique
+  feature we add on top of the stock UserLAnd (tech.ula) runtime.
 - Build toolchain is OLD and fragile:
   - Gradle 5.1.1 wrapper, AGP 3.4.3, Kotlin 1.3.61, JDK 8.
   - compileSdk/targetSdk = 29. Do NOT bump to 30+ unless you also upgrade Gradle+AGP+Kotlin.
@@ -26,8 +26,8 @@
 
 ## What must stay working
 - tech.ula runtime (MainActivity, ServerService, UlaDocProvider, termux terminal).
-- Sovereign additions: SettingsFragment "Sovereign EdgePanel" category, EdgePanelService
-  overlay, mandatory signing enforcement, Arch as default distro.
+- Sovereign additions: SettingsFragment "Sovereign Edge Panel" category, EdgePanelService
+  overlay, SovereignApplication signing enforcement, Arch default distribution.
 
 ## Do not
 - Do not commit `keystore.jks` or any keystore (gitignored).

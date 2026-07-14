@@ -4,13 +4,13 @@ You are working in `spiralgang/sovereign-ula`.
 
 ## What this repo is
 **The goal is the Sovereign ULA app** — a rebrand of the open-source UserLAnd
-Android app (tech.ula runtime) into a separate app called **Sovereign EdgePanel**
+Android app (tech.ula runtime) into a separate app called **Sovereign ULA**
 (package `com.sovereign.edgepanel`). The stock UserLAnd runtime (terminal,
 filesystem/session management, ServerService, UlaDocProvider) is kept intact; we
 only swap `applicationId` so it installs separately.
 
 ## The unique features we add on top (don't break these)
-- `Sovereign EdgePanel` settings category in `SettingsFragment` (full permission
+- `Sovereign Edge Panel` settings category in `SettingsFragment` (full permission
   list, Downloads/shared-storage, overlay permission, edge-panel toggle).
 - `EdgePanelService` — floating settings edge-panel overlay.
 - `SovereignApplication` — mandatory signing-certificate enforcement (kills the

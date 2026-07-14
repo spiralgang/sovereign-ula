@@ -3,10 +3,10 @@
 ## Goal
 **The Sovereign ULA app is the goal**: a fully rebranded build of the UserLAnd
 (tech.ula) Linux-in-a-box runtime, packaged as a separate Android app under our
-name (package `com.sovereign.edgepanel`, app name "Sovereign EdgePanel").
+name (package `com.sovereign.edgepanel`, app name "Sovereign ULA").
 
 The **unique features** we add on top of the stock UserLAnd runtime are:
-- Our own **Sovereign settings screen** (a full "Sovereign EdgePanel" preference
+- Our own **Sovereign settings screen** (a full "Sovereign Edge Panel" preference
   category enumerating every permission the app can request, plus direct
   shared-storage / Downloads access).
 - A floating **edge-panel overlay** service (EdgePanelService).

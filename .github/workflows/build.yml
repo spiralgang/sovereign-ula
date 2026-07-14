@@ -87,9 +87,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
-          name: Sovereign EdgePanel v1.0.${{ github.run_number }}
+          name: Sovereign ULA v1.0.${{ github.run_number }}
           body: |
-            Standalone Sovereign EdgePanel app (package com.sovereign.edgepanel)
+            Standalone Sovereign ULA app (package com.sovereign.edgepanel)
             rebranded from the UserLAnd (tech.ula) runtime. Signed with the
             mandatory Sovereign release certificate.
 
