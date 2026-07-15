@@ -1,0 +1,62 @@
+name: Distro Deploy Listener
+
+# SEPARATE distro deployment trigger.
+# The SOVEREIGN-ULA Android app fires `workflow_dispatch` with the chosen
+# distro; this workflow builds that distro's rootfs tar.gz (modern Noble
+# bootstrap) and publishes it as a release asset the app can pull on-demand.
+# This is a plain build pipeline — NO LLM, NO code review (see ai-agent-review.yml).
+
+on:
+  workflow_dispatch:
+    inputs:
+      distro:
+        description: "Distro to build (ubuntu | debian | arch)"
+        required: true
+        default: "ubuntu"
+      suite:
+        description: "Release suite tag for the published asset"
+        required: false
+        default: "latest"
+
+permissions:
+  contents: write
+
+jobs:
+  build-rootfs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build deps + QEMU binfmt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binfmt-support qemu-user-static docker.io
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: Build chosen distro rootfs
+        run: |
+          DISTRO="${{ github.event.inputs.distro }}"
+          SUITE="${{ github.event.inputs.suite }}"
+          echo "Building distro=$DISTRO suite=$SUITE"
+          # The bootstrap source for each distro lives under bootstrap/<distro>/
+          ls -la "bootstrap/$DISTRO" || { echo "No bootstrap source for $DISTRO"; exit 1; }
+          # Placeholder real build step (filled by the bootstrap PR):
+          #   docker buildx bake -f bootstrap/$DISTRO/docker-bake.hcl
+          #   ./bootstrap/$DISTRO/build.sh
+          mkdir -p release
+          # Produce a real, minimal placeholder tarball so the asset pipeline works end-to-end.
+          tar -czf "release/${DISTRO}-rootfs.tar.gz" -C "bootstrap/$DISTRO" .
+          ls -la release/
+
+      - name: Publish rootfs asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: distro-${{ github.event.inputs.distro }}-${{ github.event.inputs.suite }}
+          name: "${{ github.event.inputs.distro }} rootfs (${{ github.event.inputs.suite }})"
+          body: |
+            On-demand rootfs for `${{ github.event.inputs.distro }}` requested via
+            the SOVEREIGN-ULA app. Pulled by the app when a user selects this distro.
+          files: release/${{ github.event.inputs.distro }}-rootfs.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
