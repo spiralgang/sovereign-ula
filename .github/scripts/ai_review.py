@@ -54,7 +54,7 @@ def github(path, method="GET", data=None):
     body = json.dumps(data).encode() if data is not None else None
     if body is not None:
         req.add_header("Content-Type", "application/json")
-    with urllib.request.urlopen(req, data=body, timeout=60) as r:
+    with urllib.request.urlopen(req, data=body, timeout=120) as r:
         return json.loads(r.read().decode())
 
 
@@ -155,8 +155,17 @@ def call_llm(diff_text, pr_title, pr_body):
     req.add_header("Authorization", f"Bearer {LLM_KEY}")
     req.add_header("Content-Type", "application/json")
     req.add_header("User-Agent", "sovereign-ai-reviewer")
-    with urllib.request.urlopen(req, data=json.dumps(payload).encode(), timeout=120) as r:
-        resp = json.loads(r.read().decode())
+    last_err = None
+    for attempt in range(2):  # one retry on transient timeout
+        try:
+            with urllib.request.urlopen(req, data=json.dumps(payload).encode(), timeout=300) as r:
+                resp = json.loads(r.read().decode())
+            break
+        except urllib.error.URLError as e:
+            last_err = e
+            print(f"LLM call attempt {attempt+1} failed: {e}; retrying...")
+    else:
+        raise last_err
     content = resp["choices"][0]["message"]["content"].strip()
     # The model may wrap JSON in fences despite instructions; unwrap.
     if content.startswith("```"):
