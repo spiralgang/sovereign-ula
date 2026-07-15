@@ -30,7 +30,7 @@ class GithubApiClient(
     // This function can be used to tune the release used for each asset type for testing purposes.
     private fun getReleaseToUseForRepo(repo: String): String {
         return when (repo) {
-            "debian" -> "latest"
+            "debian", "ubuntu" -> "latest"
             else -> "latest"
         }
     }
@@ -62,7 +62,7 @@ class GithubApiClient(
     private suspend fun queryLatestRelease(repo: String): ReleasesResponse = withContext(Dispatchers.IO) {
         val releaseToUse = getReleaseToUseForRepo(repo)
         val base = urlProvider.getBaseUrl()
-        val url = base + "repos/CypherpunkArmory/UserLAnd-Assets-$repo/releases/$releaseToUse"
+        val url = base + "repos/spiralgang/UserLAnd-Assets-$repo/releases/$releaseToUse"
         val moshi = Moshi.Builder().build()
         val adapter = moshi.adapter(ReleasesResponse::class.java)
         val request = Request.Builder()
