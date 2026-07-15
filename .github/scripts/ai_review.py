@@ -36,11 +36,8 @@ REPO = os.environ["REPO"]
 PR_NUMBER = os.environ["PR_NUMBER"]
 TOKEN = os.environ["GITHUB_TOKEN"]
 
-LLM_BASE_URL = os.environ.get(
-    "LLM_BASE_URL",
-    "https://integrate.api.nvidia.com/v1/chat/completions",
-)
-LLM_MODEL = os.environ.get("LLM_MODEL", "meta/llama-3.1-8b-instruct")
+LLM_BASE_URL = os.environ.get("LLM_BASE_URL") or "https://integrate.api.nvidia.com/v1/chat/completions"
+LLM_MODEL = os.environ.get("LLM_MODEL") or "meta/llama-3.1-8b-instruct"
 LLM_KEY = os.environ.get("NVIDIA_API_KEY") or os.environ.get("VIBE_API_KEY")
 
 
