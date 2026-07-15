@@ -38,6 +38,11 @@ jobs:
         run: |
           DISTRO="${{ github.event.inputs.distro }}"
           SUITE="${{ github.event.inputs.suite }}"
+          # Validate the requested distro has a bootstrap source before building.
+          if [ ! -d "bootstrap/$DISTRO" ]; then
+            echo "::error::No bootstrap source for distro '$DISTRO'. Available:"; ls bootstrap
+            exit 1
+          fi
           echo "Building distro=$DISTRO suite=$SUITE"
           # The bootstrap source for each distro lives under bootstrap/<distro>/
           ls -la "bootstrap/$DISTRO" || { echo "No bootstrap source for $DISTRO"; exit 1; }

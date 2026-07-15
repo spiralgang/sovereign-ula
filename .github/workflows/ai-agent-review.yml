@@ -21,6 +21,7 @@ permissions:
 
 jobs:
   ai-review:
+    if: github.event.pull_request.draft == false || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
