@@ -115,14 +115,16 @@ def parse_diff(diff_text):
 # LLM call: strict JSON schema of inline findings
 # --------------------------------------------------------------------------
 SCHEMA_HINT = (
-    'Return ONLY a JSON array (no prose, no markdown fences). Each element: '
+    'Return a JSON object {"findings":[...]} with 3 to 6 findings. NEVER return an empty list. '
+    'Each element: '
     '{"path": <file path as in the diff>, "line": <new-file line number>, '
     '"severity": "critical"|"warning"|"suggestion", '
-    '"comment": <string with a ```suggestion fenced code block of the REPLACEMENT '
-    'for that line, plus one short sentence of why>}. '
-    'ONLY emit findings you can back with a concrete one-line fix. '
-    'If the diff is clean, return []. '
-    'Line numbers MUST match added/changed lines in the diff. Do not invent paths or lines.'
+    '"comment": <one short sentence of why + a ```suggestion fenced code block with the '
+    'REPLACEMENT for that single line>}. '
+    'Prefer real, verifiable issues: hardcoded org names, dead/no-op code, wrong API usage, '
+    'missing error handling, quoting/heredoc bugs, unused variables. '
+    'Line numbers MUST match added/changed lines present in the diff. Do not invent paths or lines. '
+    'If a line is ambiguous, still include your best high-confidence pick rather than omitting it.'
 )
 
 
@@ -135,7 +137,7 @@ def call_llm(diff_text, pr_title, pr_body):
         "of per-line suggestions using GitHub ```suggestion syntax. "
         "You are precise: real line numbers, real file paths, real fixes. "
         "No hallucinated boilerplate. No generic security lectures. "
-        "If a change is correct, say nothing about it."
+        "You ALWAYS return findings (3-6); you never return an empty list."
     )
     user = (
         f"PR: {pr_title}\n\nDescription:\n{pr_body or '(none)'}\n\n"
