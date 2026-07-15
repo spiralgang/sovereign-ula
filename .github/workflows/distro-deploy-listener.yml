@@ -55,10 +55,14 @@ jobs:
           ls -la release/
 
       - name: Publish rootfs asset
+        # The app's GithubApiClient.kt fetches distro rootfs from
+        # spiralgang/UserLAnd-Assets-<distro> releases, so we publish there —
+        # the app pulls the result with no further changes.
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: distro-${{ github.event.inputs.distro }}-${{ github.event.inputs.suite }}
-          name: "${{ github.event.inputs.distro }} rootfs (${{ github.event.inputs.suite }})"
+          repository: spiralgang/UserLAnd-Assets-${{ github.event.inputs.distro }}
+          tag_name: ${{ github.event.inputs.suite }}
+          name: "rootfs ${{ github.event.inputs.distro }} (${{ github.event.inputs.suite }})"
           body: |
             On-demand rootfs for `${{ github.event.inputs.distro }}` requested via
             the SOVEREIGN-ULA app. Pulled by the app when a user selects this distro.
