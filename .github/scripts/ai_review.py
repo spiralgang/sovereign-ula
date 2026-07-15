@@ -120,12 +120,17 @@ SCHEMA_HINT = (
     'Each element: '
     '{"path": <file path as in the diff>, "line": <new-file line number>, '
     '"severity": "critical"|"warning"|"suggestion", '
-    '"comment": <one short sentence of why + a ```suggestion fenced code block with the '
-    'REPLACEMENT for that single line>}. '
+    '"comment": <string with the EXACT GitHub suggestion block shown below, and NOTHING else>}. '
+    'The "comment" string MUST be formatted EXACTLY like this, with no extra prose and no labels: '
+    '```suggestion\\n<REPLACEMENT CODE FOR THAT ONE LINE ONLY>\\n```\\n'
+    'Rules: (1) the first line is literally ```suggestion and the block ends with ``` on its own line; '
+    '(2) put ONLY the replacement code inside the fence — no explanation inside it; '
+    '(3) if you want to explain why, put ONE short sentence AFTER the closing ```; '
+    '(4) NEVER use a ```python or ```yaml or other language-tagged fence; NEVER prefix with [SUGGESTION] or [WARNING] labels; '
+    '(5) the replacement must be a real, compilable one-line (or few-line) fix for that exact diff line. '
     'Prefer real, verifiable issues: hardcoded org names, dead/no-op code, wrong API usage, '
     'missing error handling, quoting/heredoc bugs, unused variables. '
-    'Line numbers MUST match added/changed lines present in the diff. Do not invent paths or lines. '
-    'If a line is ambiguous, still include your best high-confidence pick rather than omitting it.'
+    'Line numbers MUST match added/changed lines present in the diff. Do not invent paths or lines.'
 )
 
 
@@ -135,7 +140,8 @@ def call_llm(diff_text, pr_title, pr_body):
         "(a UserLAnd fork, applicationId dev.soveriegn.ula) and its Linux distro "
         "bootstrap shell scripts. You produce INLINE, commit-ready fixes. "
         "You never write summaries or 'Looks Good' walls. You output strict JSON "
-        "of per-line suggestions using GitHub ```suggestion syntax. "
+        "of per-line suggestions using GitHub ```suggestion syntax (literal ```suggestion fence, "
+        "NOT ```python/```yaml, and NO [SUGGESTION]/[WARNING] labels). "
         "You are precise: real line numbers, real file paths, real fixes. "
         "No hallucinated boilerplate. No generic security lectures. "
         "You ALWAYS return findings (3-6); you never return an empty list."
