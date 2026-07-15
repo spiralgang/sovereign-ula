@@ -56,7 +56,7 @@ def make_legacy(img_square, size):
     d = ImageDraw.Draw(base)
     d.rounded_rectangle([0, 0, size - 1, size - 1], radius=size // 5, fill=(*BACKDROP, 255))
     inset = int(size * 0.30)
-    hero = hero_square(img_square).resize((size - 2 * inset, size - 2 * inset), Image.LANCZOS)
+    hero = hero_square(img_square).resize((size - 2 * inset, size - 2 * inset), RESAMPLE)
     # circular mask for the hero inset
     circ = Image.new("L", hero.size, 0)
     ImageDraw.Draw(circ).ellipse([0, 0, hero.size[0] - 1, hero.size[1] - 1], fill=255)
