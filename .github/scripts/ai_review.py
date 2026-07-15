@@ -139,7 +139,7 @@ def call_llm(diff_text, pr_title, pr_body):
     )
     user = (
         f"PR: {pr_title}\n\nDescription:\n{pr_body or '(none)'}\n\n"
-        f"DIFF:\n{diff_text[:28000]}\n\n{SCHEMA_HINT}"
+        f"DIFF:\n{diff_text[:16000]}\n\n{SCHEMA_HINT}"
     )
     payload = {
         "model": LLM_MODEL,
@@ -158,10 +158,10 @@ def call_llm(diff_text, pr_title, pr_body):
     last_err = None
     for attempt in range(2):  # one retry on transient timeout
         try:
-            with urllib.request.urlopen(req, data=json.dumps(payload).encode(), timeout=300) as r:
+            with urllib.request.urlopen(req, data=json.dumps(payload).encode(), timeout=240) as r:
                 resp = json.loads(r.read().decode())
             break
-        except urllib.error.URLError as e:
+        except OSError as e:  # socket.timeout / URLError both subclass OSError
             last_err = e
             print(f"LLM call attempt {attempt+1} failed: {e}; retrying...")
     else:
