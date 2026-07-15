@@ -2,11 +2,11 @@
 
 ![SOVEREIGN-ULA](images/sov_hero.jpeg)
 
-**SOVEREIGN-ULA** is a rebrand of the UserLAnd (`tech.ula`) Linux-in-a-box runtime,
-packaged as a **separate Android app** under our own name, icon, and package
-(`dev.soveriegn.ula`). The full UserLAnd runtime stays intact (MainActivity,
-ServerService, UlaDocProvider, Termux activity/service) — it just installs and runs
-on its own, distinct from stock UserLAnd.
+**SOVEREIGN-ULA** is a rebasing of UserLAnd (`tech.ula`) Linux-in-a-box shell enviroment,
+packaged as a **separate unique distinctly reimagined apk** under our own name, icon, and package
+(`dev.soveriegn.ula`). The UserLAnd shell runtime concept is intact (MainActivity,
+ServerService, UlaDocProvider, Termux activity/service) — this just installs and runs
+on its own settings, theme, process, evolved concept && updated defined bootstrap packages-distinct from stock UserLAnd (This is essentially what Termux is of UserLAnd what Sovereign-Ula is of UserLAnd— *rebased && reimagined*)
 
 ## Unique features we add on top
 
@@ -20,7 +20,17 @@ on its own, distinct from stock UserLAnd.
 - **In-app billing disabled** — no billing client is initialised.
 - **Mandatory signing certificate** — the app aborts unless signed by our release cert.
 - **Arch Linux** as the default / auto-bootstrap distribution.
-
+- **Aarch64 Compatible Translator** Updated && evolved packages
+- **A.G.I Prepped** A.I services prepped on bootstrap
+- **Settings Walk-Thru** MOTD HEADER WALK-THRU OF SETTINGS AND HOW TO ACCESS THEN
+- **DEVICE IMPORT-EXPORT** IMPORT-EXPORT DEVICE FILES
+- **ACCESSIBILTY SUITE PERMISSIONS** ANDROID PERMISSIONS ACCESSIBILITY PERMISSIONS
+- **SHELL EVOLUTION && HARDENING** EVOLVING && HARDENING EXISTING SHELL && ENVIROMENT 
+- **PRESET DEV ENVIRONMENT CONFIGS** READY-TO-USE PRESET ENVIRONMENT FOR DEVELOPER CONFIGURATIONS
+  ##*PLUS MUCH, MUCH MORE*
+---
+---
+---
 ## How it's built
 
 Fork of UserLAnd; we change only `applicationId` to `dev.soveriegn.ula` and add the
