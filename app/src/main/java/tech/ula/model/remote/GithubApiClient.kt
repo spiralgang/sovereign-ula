@@ -27,12 +27,10 @@ class GithubApiClient(
     private val client = OkHttpClient()
     private val latestResults: HashMap<String, ReleasesResponse?> = hashMapOf()
 
-    // This function can be used to tune the release used for each asset type for testing purposes.
+    // All asset repos use the "latest" release tag. Kept as a single-point
+    // tunable in case a distro ever needs a pinned tag.
     private fun getReleaseToUseForRepo(repo: String): String {
-        return when (repo) {
-            "debian", "ubuntu" -> "latest"
-            else -> "latest"
-        }
+        return "latest"
     }
 
     @Throws(IOException::class)

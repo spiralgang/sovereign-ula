@@ -13,6 +13,12 @@ icons get a solid rounded backdrop so they read fine on old launchers.
 import os
 from PIL import Image, ImageDraw, ImageFilter
 
+# Pillow >= 10 renamed LANCZOS; fall back for older versions.
+try:
+    RESAMPLE = Image.Resampling.LANCZOS
+except AttributeError:  # Pillow < 10
+    RESAMPLE = Image.LANCZOS
+
 RES = "app/src/main/res"
 SRC = "images/sov_hero.jpeg"
 
@@ -62,7 +68,7 @@ def make_foreground(img_square, size):
     """Centered circular hero on transparent (adaptive-icon foreground layer)."""
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     inset = int(size * 0.14)
-    hero = hero_square(img_square).resize((size - 2 * inset, size - 2 * inset), Image.LANCZOS)
+    hero = hero_square(img_square).resize((size - 2 * inset, size - 2 * inset), RESAMPLE)
     circ = Image.new("L", hero.size, 0)
     ImageDraw.Draw(circ).ellipse([0, 0, hero.size[0] - 1, hero.size[1] - 1], fill=255)
     canvas.paste(hero, (inset, inset), circ)
@@ -71,7 +77,7 @@ def make_foreground(img_square, size):
 
 def make_stat(img_square, size):
     """Monochrome-ish small icon for the status bar (circular hero)."""
-    hero = hero_square(img_square).resize((size, size), Image.LANCZOS).convert("RGBA")
+    hero = hero_square(img_square).resize((size, size), RESAMPLE).convert("RGBA")
     circ = Image.new("L", (size, size), 0)
     ImageDraw.Draw(circ).ellipse([0, 0, size - 1, size - 1], fill=255)
     out = Image.new("RGBA", (size, size), (0, 0, 0, 0))
@@ -86,7 +92,7 @@ def main():
         make_legacy(img, sz).save(f"{RES}/mipmap-{dens}/ic_launcher.png")
         # round icon (legacy) — full-bleed rounded square of hero
         base = Image.new("RGBA", (sz, sz), (0, 0, 0, 0))
-        hero = hero_square(img).resize((sz, sz), Image.LANCZOS)
+        hero = hero_square(img).resize((sz, sz), RESAMPLE)
         base.paste(hero, (0, 0), rounded_mask(sz, sz // 4))
         base.save(f"{RES}/mipmap-{dens}/ic_launcher_round.png")
         # adaptive foreground

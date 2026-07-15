@@ -22,7 +22,8 @@ EOF
 }
 
 print_walkthrough() {
-cat <<'EOF'
+SOVEREIGN_MOTD_IMG="/support/sov_hero.jpeg"
+cat <<EOF
   ── FIRST-BOOT WALK-THROUGH ──────────────────────────────────────────
   1. PERMISSIONS  Grant from Android Settings → Apps → SOVEREIGN-ULA:
      Storage (all-files), Overlay, Accessibility. Use the in-app Edge
@@ -35,6 +36,7 @@ cat <<'EOF'
      export NVIDIA_API_KEY=…   (see Settings → Env)
   5. LICENSING & FUNDING  Rebrand of open-source UserLAnd (GPLv3).
      Source: $SOVEREIGN_REPO   Fund: $SOVEREIGN_FUNDING
+  6. MOTD IMAGE  $SOVEREIGN_MOTD_IMG (sov_hero) shown as walk-through bg.
   ─────────────────────────────────────────────────────────────────────
 EOF
 }
