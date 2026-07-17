@@ -1,0 +1,52 @@
+name: AI Agent PR Review
+
+# SEPARATE gitapp-type LLM review runner.
+# Reviews PR diffs via the Pull Request Review API (inline `suggestion` blocks
+# mapped to real diff lines — like an integrated review app). Does NOT build or
+# deploy anything (see distro-deploy-listener.yml for the build/deploy trigger).
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to review"
+        required: true
+
+# Cancel any in-progress run for the same PR/ref so re-pushes don't pile up
+# a dozen reviews. This is what stops the trigger-loop spam.
+concurrency:
+  group: ai-agent-review-${{ github.event.pull_request.number || github.event.inputs.pr_number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+
+jobs:
+  ai-review:
+    if: github.event.pull_request.draft == false || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # We need the merge-base diff, not a shallow clone, for accurate lines.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run AI review agent
+        env:
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          VIBE_API_KEY: ${{ secrets.VIBE_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+        run: python3 .github/scripts/ai_review.py

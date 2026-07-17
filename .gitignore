@@ -6,3 +6,4 @@ rf2/
 debs/
 *.deb
 apktool.jar
+__pycache__/
