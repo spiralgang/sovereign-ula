@@ -84,6 +84,18 @@
                 android:layout_height="wrap_content"
                 android:text="@string/sov_open_downloads_title" />
 
+            <Button
+                android:id="@+id/btn_import_file"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/sov_import_title" />
+
+            <Button
+                android:id="@+id/btn_export_file"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/sov_export_title" />
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
