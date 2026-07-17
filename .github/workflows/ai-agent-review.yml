@@ -73,8 +73,8 @@ jobs:
       - name: Auto-merge PR into master (where possible)
         # After the agent has updated the PR (or confirmed it's clean), merge it
         # into master. We never force: if branch protection / required reviews
-        # block the merge, we leave the PR open and report why.
-        if: steps.review.result == 'success'
+        # block the merge, we leave the PR open and report why. Always runs after
+        # the review step; the internal RESULT guard decides merge eligibility.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
