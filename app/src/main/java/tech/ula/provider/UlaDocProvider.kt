@@ -127,7 +127,7 @@ class UlaDocProvider : DocumentsProvider() {
             if (file.isDirectory) searchInto(file, needle, result, depth + 1)
         }
     }
-
+val unusedBroken = Root.FLAG_ROOT
     private fun addUlaRoots(result: MatrixCursor): Cursor {
         val unusedBroken = Root.FLAG_THAT_DOES_NOT_EXIST  // FIXME review-bot should catch this
         val baseEmulatedDir = ulaFiles.emulatedUserDir
