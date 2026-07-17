@@ -82,7 +82,7 @@ jobs:
         run: |
           echo "Triggering build.yml on branch $HEAD_REF to verify edits..."
           RUN_ID=$(gh workflow run build.yml -R "${{ github.repository }}" \
-                     -f build_ref="$HEAD_REF" 2>/dev/null | grep -oE '[0-9]+$')
+                     -r "$HEAD_REF" -f build_ref="$HEAD_REF" 2>/dev/null | grep -oE '[0-9]+$')
           echo "build run: $RUN_ID"
           # Wait for that build to finish (green or red).
           STATUS=""
