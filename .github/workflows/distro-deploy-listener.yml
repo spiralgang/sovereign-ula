@@ -1,10 +1,16 @@
 name: Distro Deploy Listener
 
-# SEPARATE distro deployment trigger.
-# The SOVEREIGN-ULA Android app fires `workflow_dispatch` with the chosen
-# distro; this workflow builds that distro's rootfs tar.gz (modern Noble
-# bootstrap) and publishes it as a release asset the app can pull on-demand.
-# This is a plain build pipeline — NO LLM, NO code review (see ai-agent-review.yml).
+# Builds OUR Sovereign-ULA distro rootfs from OUR bootstrap/ source (Noble,
+# latest-rolling) and publishes the artifacts as release assets on OUR repo
+# (spiralgang/sovereign-ula). NO tech.ula / UserLAnd assets are used.
+#
+# The app fetches distro assets from:
+#   repos/spiralgang/sovereign-ula/releases/<distro>
+# looking for <arch>-rootfs.tar.gz / <arch>-assets.tar.gz / <arch>-assets.txt
+# where <arch> in {arm64, arm, x86_64, x86}.
+#
+# SEPARATE from build.yml (APK) and ai-agent-review.yml — plain build pipeline,
+# NO LLM / code review.
 
 on:
   workflow_dispatch:
@@ -14,9 +20,9 @@ on:
         required: true
         default: "ubuntu"
       suite:
-        description: "Release suite tag for the published asset"
+        description: "Release tag for the published assets (e.g. ubuntu | debian | arch)"
         required: false
-        default: "latest"
+        default: "ubuntu"
 
 permissions:
   contents: write
@@ -28,48 +34,64 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install build deps + QEMU binfmt
+      - name: Install cross-arch emulation (runner already has Docker)
         run: |
-          # The runner already ships Docker; installing docker.io conflicts with
-          # the preinstalled containerd. Use the existing Docker and only add the
-          # cross-arch emulation bits.
           docker version >/dev/null 2>&1 || { echo "::error::Docker not available on runner"; exit 1; }
           sudo apt-get update
           sudo apt-get install -y binfmt-support qemu-user-static
           docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-      - name: Build chosen distro rootfs
+      - name: Build chosen distro rootfs (all arches)
         run: |
+          set -euo pipefail
           DISTRO="${{ github.event.inputs.distro }}"
-          SUITE="${{ github.event.inputs.suite }}"
-          # Validate the requested distro has a bootstrap source before building.
           if [ ! -d "bootstrap/$DISTRO" ]; then
             echo "::error::No bootstrap source for distro '$DISTRO'. Available:"; ls bootstrap
             exit 1
           fi
-          echo "Building distro=$DISTRO suite=$SUITE"
-          # The bootstrap source for each distro lives under bootstrap/<distro>/
-          ls -la "bootstrap/$DISTRO" || { echo "No bootstrap source for $DISTRO"; exit 1; }
-          # Placeholder real build step (filled by the bootstrap PR):
-          #   docker buildx bake -f bootstrap/$DISTRO/docker-bake.hcl
-          #   ./bootstrap/$DISTRO/build.sh
+          echo "Building OUR $DISTRO Noble rootfs (all arches) from bootstrap/$DISTRO"
           mkdir -p release
-          # Produce a real, minimal placeholder tarball so the asset pipeline works end-to-end.
-          tar -czf "release/${DISTRO}-rootfs.tar.gz" -C "bootstrap/$DISTRO" .
+          for ARCH in arm64 arm x86_64 x86; do
+            echo "== build $ARCH =="
+            ( cd "bootstrap/$DISTRO" && bash build.sh "$ARCH" )
+            # build.sh writes bootstrap/$DISTRO/release/<ARCH>-rootfs.tar.gz
+            # + <ARCH>-assets.tar.gz / <ARCH>-assets.txt
+            cp "bootstrap/$DISTRO/release/${ARCH}-rootfs.tar.gz" "release/${ARCH}-rootfs.tar.gz"
+            cp "bootstrap/$DISTRO/release/${ARCH}-assets.tar.gz" "release/${ARCH}-assets.tar.gz" 2>/dev/null || true
+            if [ -f "bootstrap/$DISTRO/release/${ARCH}-assets.txt" ]; then
+              cp "bootstrap/$DISTRO/release/${ARCH}-assets.txt" "release/${ARCH}-assets.txt"
+            else
+              : > "release/${ARCH}-assets.txt"
+            fi
+            # sanity: rootfs must be a real tarball, not the placeholder
+            sz=$(stat -c%s "release/${ARCH}-rootfs.tar.gz")
+            echo "  $ARCH rootfs size = $sz bytes"
+            if [ "$sz" -lt 1000000 ]; then
+              echo "::error::rootfs for $ARCH looks wrong (${sz} bytes); build.sh failed"
+              exit 1
+            fi
+          done
           ls -la release/
 
-      - name: Publish rootfs asset
-        # The app's GithubApiClient.kt fetches distro rootfs from
-        # spiralgang/UserLAnd-Assets-<distro> releases, so we publish there —
-        # the app pulls the result with no further changes.
+      - name: Publish rootfs assets to OUR repo
         uses: softprops/action-gh-release@v2
         with:
-          repository: spiralgang/UserLAnd-Assets-${{ github.event.inputs.distro }}
+          repository: spiralgang/sovereign-ula
           tag_name: ${{ github.event.inputs.suite }}
-          name: "rootfs ${{ github.event.inputs.distro }} (${{ github.event.inputs.suite }})"
+          name: "distro ${{ github.event.inputs.suite }} (Noble, latest)"
           body: |
-            On-demand rootfs for `${{ github.event.inputs.distro }}` requested via
-            the SOVEREIGN-ULA app. Pulled by the app when a user selects this distro.
-          files: release/${{ github.event.inputs.distro }}-rootfs.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            On-demand Sovereign-ULA distro rootfs built from OUR `bootstrap/${{ github.event.inputs.distro }}` (Ubuntu 24.04 Noble, latest-rolling). Pulled by the app when a user selects this distro.
+          files: |
+            release/arm64-rootfs.tar.gz
+            release/arm-rootfs.tar.gz
+            release/x86_64-rootfs.tar.gz
+            release/x86-rootfs.tar.gz
+            release/arm64-assets.tar.gz
+            release/arm-assets.tar.gz
+            release/x86_64-assets.tar.gz
+            release/x86-assets.tar.gz
+            release/arm64-assets.txt
+            release/arm-assets.txt
+            release/x86_64-assets.txt
+            release/x86-assets.txt
+        token: ${{ secrets.GITHUB_TOKEN }}
