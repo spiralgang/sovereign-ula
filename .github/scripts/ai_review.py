@@ -278,6 +278,13 @@ def main():
     summary_lines.append("*Automated agentic LLM review runner.*")
     github(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", "POST", {"body": "\n".join(summary_lines)})
     print(f"Posted summary. applied={len(applied)} skipped={len(skipped)}")
+    # Emit a machine-readable marker so the workflow can decide whether to
+    # auto-merge: APPLIED=<n> means we pushed real fixes; NOFIX means the PR
+    # was clean (nothing to apply). Either way the PR is eligible for merge.
+    if applied:
+        print(f"SOVEREIGN_RESULT=APPLIED={len(applied)}")
+    else:
+        print("SOVEREIGN_RESULT=NOFIX")
 
 
 if __name__ == "__main__":

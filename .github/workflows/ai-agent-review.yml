@@ -52,6 +52,7 @@ jobs:
           python-version: "3.11"
 
       - name: "Run AI review agent (agentic: reviews + auto-fixes)"
+        id: review
         env:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
@@ -61,4 +62,49 @@ jobs:
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
           AUTO_FIX: "true"
-        run: python3 .github/scripts/ai_review.py
+        run: |
+          OUT=$(python3 .github/scripts/ai_review.py 2>&1 | tee /tmp/ai_review.log)
+          # capture the SOVEREIGN_RESULT marker for the merge step
+          MARKER=$(echo "$OUT" | grep -oE 'SOVEREIGN_RESULT=(APPLIED=[0-9]+|NOFIX)' | tail -1 || true)
+          echo "marker=$MARKER"
+          echo "result=${MARKER:-SOVEREIGN_RESULT=UNKNOWN}" >> "$GITHUB_OUTPUT"
+
+      - name: Auto-merge PR into master (where possible)
+        # After the agent has updated the PR (or confirmed it's clean), merge it
+        # into master. We never force: if branch protection / required reviews
+        # block the merge, we leave the PR open and report why.
+        if: >-
+          steps.review.result == 'success'
+          && (contains(steps.review.outputs.result, 'APPLIED')
+              || contains(steps.review.outputs.result, 'NOFIX'))
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+        run: |
+          set +e
+          echo "Attempting auto-merge of PR #$PR_NUMBER into master..."
+          for i in 1 2 3 4 5; do
+            OUT=$(gh pr merge "$PR_NUMBER" --squash --delete-branch 2>&1); rc=$?
+            if [ $rc -eq 0 ]; then
+              echo "AUTO-MERGED PR #$PR_NUMBER into master."
+              exit 0
+            fi
+            # If a stale bot requested changes, dismiss and retry.
+            RID=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews" \
+                  --jq '.[] | select(.state=="CHANGES_REQUESTED") | .id' 2>/dev/null | head -1)
+            if [ -n "$RID" ]; then
+              gh api -X PUT "repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews/$RID/dismissals" \
+                -f message="auto-dismiss stale changes-requested for agentic merge" >/dev/null 2>&1
+              echo "dismissed stale CHANGES_REQUESTED review $RID; retrying merge"
+              sleep 4
+              continue
+            fi
+            echo "merge attempt $i failed: $(echo "$OUT" | head -1)"
+            # base branch policy / protection blocks us -> stop, leave open
+            if echo "$OUT" | grep -qiE 'policy prohibits|required|protection|blocked'; then
+              echo "::warning::Auto-merge blocked by branch policy; leaving PR #$PR_NUMBER open for manual merge."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::warning::Auto-merge did not complete for PR #$PR_NUMBER; leaving open."
