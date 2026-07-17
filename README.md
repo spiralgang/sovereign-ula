@@ -25,7 +25,7 @@ on its own settings, theme, process, evolved concept && updated defined bootstra
 - **Mandatory signing certificate** —
   The app aborts unless signed by our privileged release certificates.
 - **Arch Linux** —
-  As the default / auto-bootstrap distribution chroot/proot enviroment compiler
+  As the default / auto-bootstrap distribution chroot/proot environment compiler
 - **Aarch64-Unknown-Linux-Glibc Compatible Translator** —
   Updated && evolved packages so that the Linux-GNU environment is duly compatible with Linux-GLIBC
 - **A.G.I Prepped** —
