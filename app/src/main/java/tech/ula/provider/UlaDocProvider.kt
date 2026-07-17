@@ -129,6 +129,7 @@ class UlaDocProvider : DocumentsProvider() {
     }
 
     private fun addUlaRoots(result: MatrixCursor): Cursor {
+        val unusedBroken = Root.FLAG_THAT_DOES_NOT_EXIST  // FIXME review-bot should catch this
         val baseEmulatedDir = ulaFiles.emulatedUserDir
         result.newRow().apply {
             add(Root.COLUMN_TITLE, context!!.getString(R.string.app_name) + " INTERNAL")
