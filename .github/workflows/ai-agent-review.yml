@@ -8,7 +8,7 @@ name: AI Agent PR Review
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, reopened]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -63,25 +63,30 @@ jobs:
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
           AUTO_FIX: "true"
         run: |
-          OUT=$(python3 .github/scripts/ai_review.py 2>&1 | tee /tmp/ai_review.log)
-          # capture the SOVEREIGN_RESULT marker for the merge step
-          MARKER=$(echo "$OUT" | grep -oE 'SOVEREIGN_RESULT=(APPLIED=[0-9]+|NOFIX)' | tail -1 || true)
-          echo "marker=$MARKER"
-          echo "result=${MARKER:-SOVEREIGN_RESULT=UNKNOWN}" >> "$GITHUB_OUTPUT"
+          python3 .github/scripts/ai_review.py 2>&1 | tee /tmp/ai_review.log
+          # Persist the SOVEREIGN_RESULT marker as a workflow artifact-style file
+          # so the next step can read it without relying on cross-step outputs.
+          grep -oE 'SOVEREIGN_RESULT=(APPLIED=[0-9]+|NOFIX)' /tmp/ai_review.log | tail -1 \
+            > /tmp/sovereign_result.txt || true
+          echo "result file: $(cat /tmp/sovereign_result.txt 2>/dev/null)"
 
       - name: Auto-merge PR into master (where possible)
         # After the agent has updated the PR (or confirmed it's clean), merge it
         # into master. We never force: if branch protection / required reviews
         # block the merge, we leave the PR open and report why.
-        if: >-
-          steps.review.result == 'success'
-          && (contains(steps.review.outputs.result, 'APPLIED')
-              || contains(steps.review.outputs.result, 'NOFIX'))
+        if: steps.review.result == 'success'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
         run: |
           set +e
+          RESULT=$(cat /tmp/sovereign_result.txt 2>/dev/null || echo UNKNOWN)
+          echo "Review result marker: $RESULT"
+          # Only auto-merge for APPLIED (we fixed it) or NOFIX (it was clean).
+          if ! echo "$RESULT" | grep -qE 'APPLIED|NOFIX'; then
+            echo "::warning::No merge eligible (marker=$RESULT); leaving PR #$PR_NUMBER open."
+            exit 0
+          fi
           echo "Attempting auto-merge of PR #$PR_NUMBER into master..."
           for i in 1 2 3 4 5; do
             OUT=$(gh pr merge "$PR_NUMBER" --squash --delete-branch 2>&1); rc=$?
