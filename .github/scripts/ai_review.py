@@ -281,8 +281,13 @@ def main():
     # Emit a machine-readable marker so the workflow can decide whether to
     # auto-merge: APPLIED=<n> means we pushed real fixes; NOFIX means the PR
     # was clean (nothing to apply). Either way the PR is eligible for merge.
-    if applied:
+    has_push_failure = any("push failed" in line for line in summary_lines)
+    has_unresolved_critical = any(f.get("severity") in ("critical", "warning") for f in findings) and (len(applied) < sum(1 for f in findings if f.get("severity") in ("critical", "warning")))
+
+    if applied and not has_push_failure:
         print(f"SOVEREIGN_RESULT=APPLIED={len(applied)}")
+    elif has_push_failure or has_unresolved_critical:
+        print("SOVEREIGN_RESULT=FAILED")
     else:
         print("SOVEREIGN_RESULT=NOFIX")
 
