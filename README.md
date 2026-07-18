@@ -2,11 +2,11 @@
 
 ![SOVEREIGN-ULA](images/sov_hero.jpeg)
 
-**SOVEREIGN-ULA** is a rebasing of UserLAnd (`tech.ula`) Linux-in-a-box shell enviroment,
-packaged as a **separate unique distinctly reimagined apk** under our own name, icon, and package
+**SOVEREIGN-ULA** is a rebasing of the UserLAnd (`tech.ula`) Linux-in-a-box shell environment,
+packaged as a **separate, unique, and distinctly reimagined APK** under our own name, icon, and package
 (`dev.soveriegn.ula`). The UserLAnd shell runtime concept is intact (MainActivity,
 ServerService, UlaDocProvider, Termux activity/service) — this just installs and runs
-on its own settings, theme, process, evolved concept && updated defined bootstrap packages-distinct from stock UserLAnd (This is essentially what Termux is of UserLAnd what Sovereign-Ula is of UserLAnd— *rebased && reimagined*)
+on its own settings, theme, process, evolved concept, and updated bootstrap packages, distinct from stock UserLAnd (this is essentially to UserLAnd what Termux is to Android — *rebased and reimagined*).
 
 ## Unique features we add on top
 
