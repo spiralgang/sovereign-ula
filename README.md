@@ -2,11 +2,11 @@
 
 ![SOVEREIGN-ULA](images/sov_hero.jpeg)
 
-## What changes does this PR introduce?
-packaged as a **separate unique distinctly reimagined apk** under our own name, icon, and package
+**SOVEREIGN-ULA** is a rebasing of the UserLAnd (`tech.ula`) Linux-in-a-box shell environment,
+packaged as a **separate, unique, and distinctly reimagined APK** under our own name, icon, and package
 (`dev.soveriegn.ula`). The UserLAnd shell runtime concept is intact (MainActivity,
 ServerService, UlaDocProvider, Termux activity/service) — this just installs and runs
-on its own settings, theme, process, evolved concept && updated defined bootstrap packages-distinct from stock UserLAnd (This is essentially what Termux is of UserLAnd what Sovereign-Ula is of UserLAnd— *rebased && reimagined*)
+on its own settings, theme, process, evolved concept, and updated bootstrap packages, distinct from stock UserLAnd (this is essentially what Sovereign-ULA is to UserLAnd — *rebased and reimagined*).
 
 ## Unique features we add on top
 
@@ -26,22 +26,22 @@ on its own settings, theme, process, evolved concept && updated defined bootstra
   The app aborts unless signed by our privileged release certificates.
 - **Arch Linux** —
   As the default / auto-bootstrap distribution chroot/proot environment compiler
-- **Aarch64-Unknown-Linux-Glibc Compatible Translator** —
-  Updated && evolved packages so that the Linux-GNU environment is duly compatible with Linux-GLIBC
-- **A.G.I Prepped** —
-  A.I services prepped on bootstrap
-- **Settings Walk Through** —
-  MOTD HEADER WALK THROUGH OF SETTINGS AND HOW TO ACCESS THEM
-- **DEVICE IMPORT-EXPORT** —
-  IMPORT-EXPORT DEVICE FILES
-- **ACCESSIBILITY SUITE PERMISSIONS** —
-  ANDROID PERMISSIONS ACCESSIBILITY PERMISSIONS
-- **SHELL EVOLUTION && HARDENING** —
-  EVOLVING && HARDENING EXISTING SHELL && ENVIRONMENT
-- **PRESET DEV ENVIRONMENT CONFIGS** —
- READY-TO-USE PRESET ENVIRONMENT FOR DEVELOPER CONFIGURATIONS
+- **Aarch64 Glibc Compatible Translator** —
+  Updated and evolved packages ensuring the Linux-GNU environment is fully compatible with Linux-GLIBC.
+- **A.G.I. Prepped** —
+  AI services prepped on bootstrap.
+- **Settings Walkthrough** —
+  MOTD header walk-through of settings and how to access them.
+- **Device Import/Export** —
+  Import and export device files.
+- **Accessibility Suite Permissions** —
+  Android accessibility permissions integration.
+- **Shell Evolution & Hardening** —
+  Evolving and hardening the existing shell and environment.
+- **Preset Dev Environment Configs** —
+  Ready-to-use preset environments for developer configurations.
 
- ##*PLUS MUCH, MUCH MORE*
+***Plus much, much more!***
  
 ---
 ---
