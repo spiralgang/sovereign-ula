@@ -4,7 +4,7 @@
 # latest-rolling chroot. The resulting /output/rootfs.tar.gz is extracted by
 # the app at runtime. This is OUR build — no tech.ula / UserLAnd assets.
 FROM ubuntu:noble
-
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg tar xz-utils gpg && rm -rf /var/lib/apt/lists/* && apt-get clean && apt-get autoclean && apt-get autoremove --purge && rm -rf /var/lib/apt/lists/* && apt-get update
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg tar xz-utils gpg && rm -rf /var/lib/apt/lists/* && apt-get clean && apt-get autoclean && apt-get autoremove
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg tar xz-utils gpg && rm -rf /var/lib/apt/lists/* && apt-get clean
