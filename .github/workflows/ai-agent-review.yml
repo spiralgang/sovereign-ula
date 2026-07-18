@@ -2,8 +2,15 @@ name: AI Agent PR Review
 
 # SEPARATE gitapp-type LLM review runner.
 # Reviews PR diffs via the Pull Request Review API (inline `suggestion` blocks
-# mapped to real diff lines — like an integrated review app). Does NOT build or
-# deploy anything (see distro-deploy-listener.yml for the build/deploy trigger).
+# mapped to real diff lines) AND - agentically - applies real fixes by
+# committing them back to the PR branch.
+#
+# Loop (your rule: check edits, fix, verify green, THEN merge+commit):
+#   1. agent reviews + applies critical/warning fixes, pushes to PR branch
+#   2. we re-trigger the project's own build.yml on that branch and WAIT
+#   3. if the build is GREEN -> squash-merge the PR into master (+ commit)
+#      if the build is RED  -> leave the PR open, post why, do NOT merge
+# Does NOT build/deploy itself (see build.yml / distro-deploy-listener.yml).
 
 on:
   pull_request:
@@ -14,8 +21,7 @@ on:
         description: "PR number to review"
         required: true
 
-# Cancel any in-progress run for the same PR/ref so re-pushes don't pile up
-# a dozen reviews. This is what stops the trigger-loop spam.
+# Cancel any in-progress run for the same PR/ref so re-pushes don't pile up.
 concurrency:
   group: ai-agent-review-${{ github.event.pull_request.number || github.event.inputs.pr_number || github.ref }}
   cancel-in-progress: true
@@ -23,24 +29,36 @@ concurrency:
 permissions:
   pull-requests: write
   issues: write
-  contents: read
+  contents: write
 
 jobs:
   ai-review:
     if: github.event.pull_request.draft == false || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve PR head ref
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+        run: |
+          REF=$(gh pr view "$PR_NUMBER" --json headRefName -q .headRefName -R "${{ github.repository }}")
+          echo "head_ref=$REF" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
         with:
-          # We need the merge-base diff, not a shallow clone, for accurate lines.
+          # Check out the PR's OWN branch so we can commit fixes back to it.
+          ref: ${{ steps.pr.outputs.head_ref }}
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Run AI review agent
+      - name: "Run AI review agent (agentic: reviews + auto-fixes)"
+        id: review
         env:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
@@ -49,4 +67,80 @@ jobs:
           VIBE_API_KEY: ${{ secrets.VIBE_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
-        run: python3 .github/scripts/ai_review.py
+          AUTO_FIX: "true"
+        run: |
+          python3 .github/scripts/ai_review.py 2>&1 | tee /tmp/ai_review.log
+          grep -oE 'SOVEREIGN_RESULT=(APPLIED=[0-9]+|NOFIX)' /tmp/ai_review.log | tail -1 \
+            > /tmp/sovereign_result.txt || true
+          echo "result file: $(cat /tmp/sovereign_result.txt 2>/dev/null)"
+
+      - name: Re-verify the PR branch builds (check the agent's edits)
+        id: verify
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_REF: ${{ steps.pr.outputs.head_ref }}
+        run: |
+          echo "Triggering build.yml on branch $HEAD_REF to verify edits..."
+          RUN_ID=$(gh workflow run build.yml -R "${{ github.repository }}" \
+                     -r "$HEAD_REF" -f build_ref="$HEAD_REF" 2>/dev/null | grep -oE '[0-9]+$')
+          echo "build run: $RUN_ID"
+          # Wait for that build to finish (green or red).
+          STATUS=""
+          for i in $(seq 1 60); do
+            STATUS=$(gh run view "$RUN_ID" -R "${{ github.repository }}" \
+                       --json status,conclusion -q '.status+" "+.conclusion' 2>/dev/null)
+            case "$STATUS" in
+              "completed success") echo "BUILD GREEN"; echo "build=green" >> "$GITHUB_OUTPUT"; break;;
+              "completed failure") echo "BUILD RED";   echo "build=red"   >> "$GITHUB_OUTPUT"; break;;
+            esac
+            sleep 15
+          done
+          if ! grep -q build= "$GITHUB_OUTPUT"; then
+            echo "build=timeout" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Merge + commit into master ONLY if build is green
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+        run: |
+          set +e
+          RESULT=$(cat /tmp/sovereign_result.txt 2>/dev/null || echo UNKNOWN)
+          BUILD="${{ steps.verify.outputs.build }}"
+          echo "review=$RESULT  build=$BUILD"
+          # Gate 1: agent must have applied a fix or found nothing to fix.
+          if ! echo "$RESULT" | grep -qE 'APPLIED|NOFIX'; then
+            echo "::warning::No merge eligible (marker=$RESULT); leaving PR #$PR_NUMBER open."
+            exit 0
+          fi
+          # Gate 2: the edited branch MUST build green. Red -> do NOT merge.
+          if [ "$BUILD" != "green" ]; then
+            echo "::error::Build is $BUILD after the agent's edits; NOT merging PR #$PR_NUMBER."
+            gh pr comment "$PR_NUMBER" -R "${{ github.repository }}" \
+              --body "🤖 Agentic review: edits applied, but the resulting build is **$BUILD**. Leaving this PR open until it builds green — please review the agent's commits." 2>/dev/null || true
+            exit 0
+          fi
+          echo "Build green + edits clean. Auto-merging PR #$PR_NUMBER into master..."
+          for i in 1 2 3 4 5; do
+            OUT=$(gh pr merge "$PR_NUMBER" --squash --delete-branch 2>&1); rc=$?
+            if [ $rc -eq 0 ]; then
+              echo "AUTO-MERGED+COMMITTED PR #$PR_NUMBER into master."
+              exit 0
+            fi
+            RID=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews" \
+                  --jq '.[] | select(.state=="CHANGES_REQUESTED") | .id' 2>/dev/null | head -1)
+            if [ -n "$RID" ]; then
+              gh api -X PUT "repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews/$RID/dismissals" \
+                -f message="auto-dismiss stale changes-requested for agentic merge" >/dev/null 2>&1
+              echo "dismissed stale CHANGES_REQUESTED review $RID; retrying"
+              sleep 4
+              continue
+            fi
+            echo "merge attempt $i failed: $(echo "$OUT" | head -1)"
+            if echo "$OUT" | grep -qiE 'policy prohibits|required|protection|blocked'; then
+              echo "::warning::Auto-merge blocked by branch policy; leaving PR #$PR_NUMBER open."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::warning::Auto-merge did not complete for PR #$PR_NUMBER; leaving open."

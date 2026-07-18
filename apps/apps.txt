@@ -1,0 +1,4 @@
+name,category,filesystemRequired,supportsCli,supportsGui,isPaidApp,version
+firefox,browser,ubuntu,true,true,false,1
+git,development,ubuntu,true,false,false,1
+vim,editor,ubuntu,true,false,false,1

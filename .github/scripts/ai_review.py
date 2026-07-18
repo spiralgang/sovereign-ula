@@ -1,33 +1,31 @@
 #!/usr/bin/env python3
 """
-Sovereign ULA — AI Agent PR Review Runner ("gitapp-type" LLM calling).
-
-STANDALONE AI reviewer that posts INLINE, commit-ready suggestions via the
-GitHub **Pull Request Review API** (not a plain comment dump). Output uses
-GitHub's ```suggestion markdown so each finding is a one-click "Apply" fix
-mapped to a real diff line — like an integrated review app.
+Sovereign ULA — AI Agent PR Review Runner (agentic: reviews AND fixes).
 
 Flow:
   1. Fetch the PR diff (raw patch) + metadata.
-  2. Parse the patch into per-file hunks, tracking new-file line numbers so
-     inline comments land on the correct line.
-  3. Send the diff to an LLM (NVIDIA / OpenAI-compatible) with a STRICT schema:
-     return a JSON array of {path, line, severity, comment} where `comment`
-     embeds a ```suggestion ... ``` block with the replacement code.
-  4. POST a Pull Request Review (event COMMENT, or REQUEST_CHANGES if any
-     critical) carrying the inline comments. If the model finds nothing
-     actionable, post one short summary comment instead.
+  2. Send the diff to an LLM (NVIDIA / OpenAI-compatible) for INLINE findings.
+     Each finding: {path, line, severity, comment} where `comment` embeds a
+     ```suggestion ... ``` block with the exact replacement code.
+  3. AGENTIC STEP: for every critical/warning finding, patch the real source
+     file at the reported line (the diff's new-file line == current file line),
+     commit the change, and PUSH it back to the PR branch. This is a real fix,
+     not a comment.
+  4. Post ONE short summary comment listing what was auto-fixed (or that the
+     diff was clean). No "Looks Good" walls, no [SUGGESTION]/[WARNING] dumps.
 
-Secrets (repo Settings -> Secrets and variables -> Actions):
-  GITHUB_TOKEN   auto-provided by Actions
-  NVIDIA_API_KEY (or VIBE_API_KEY) — LLM bearer token
-  LLM_BASE_URL   optional chat-completions endpoint override
-  LLM_MODEL      optional model override (default: meta/llama-3.3-70b-instruct)
+Secrets:
+  GITHUB_TOKEN   auto-provided by Actions (needs contents:write + pull-requests:write)
+  NVIDIA_API_KEY / VIBE_API_KEY  LLM bearer token
+  LLM_BASE_URL   chat-completions endpoint (default NVIDIA)
+  LLM_MODEL      model id (default abacusai/dracarys-llama-3.1-70b-instruct)
+  AUTO_FIX       "false" to only comment and never push (default "true")
 """
 import os
 import sys
 import json
 import re
+import subprocess
 import urllib.request
 import urllib.error
 
@@ -35,10 +33,10 @@ GITHUB_API = "https://api.github.com"
 REPO = os.environ["REPO"]
 PR_NUMBER = os.environ["PR_NUMBER"]
 TOKEN = os.environ["GITHUB_TOKEN"]
+AUTO_FIX = os.environ.get("AUTO_FIX", "true").lower() != "false"
 
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL") or "https://integrate.api.nvidia.com/v1/chat/completions"
-LLM_MODEL = os.environ.get("LLM_MODEL") or "nvidia/llama-3.1-nemotron-70b-instruct"  # NVIDIA NIM; strong code reviewer
-# Fallback if the above is unavailable: "meta/llama-3.3-70b-instruct"
+LLM_MODEL = os.environ.get("LLM_MODEL") or "abacusai/dracarys-llama-3.1-70b-instruct"
 LLM_KEY = os.environ.get("NVIDIA_API_KEY") or os.environ.get("VIBE_API_KEY")
 
 
@@ -77,7 +75,6 @@ FILE_RE = re.compile(r"^\+\+\+ b/(.+)$")
 
 
 def parse_diff(diff_text):
-    """Return {path: [(new_line, content)]} for added/context lines we can comment on."""
     files = {}
     path = None
     new_line = 0
@@ -91,29 +88,24 @@ def parse_diff(diff_text):
         if h:
             new_line = int(h.group(3))
             continue
-        if raw.startswith("+++") or raw.startswith("---") or raw.startswith("diff "):
-            # '--- a/...' and '+++ b/...' (or /dev/null) — only the b/ one sets path;
-            # ignore /dev/null (deletion-only) so we don't key on None.
-            if raw.startswith("+++") and "/dev/null" in raw:
-                path = None
+        if raw.startswith("+++") and "/dev/null" in raw:
+            path = None
             continue
         if path is None:
             continue
         if raw.startswith("+"):
-            # added line -> commentable on its new-file line
             files.setdefault(path, []).append((new_line, raw[1:]))
             new_line += 1
         elif raw.startswith("-"):
-            pass  # deleted line, no new-file position
+            pass
         else:
-            # context line -> also commentable
             files.setdefault(path, []).append((new_line, raw[1:]))
             new_line += 1
     return files
 
 
 # --------------------------------------------------------------------------
-# LLM call: strict JSON schema of inline findings
+# LLM call
 # --------------------------------------------------------------------------
 SCHEMA_HINT = (
     'Return a JSON object {"findings":[...]} with 3 to 6 findings. NEVER return an empty list. '
@@ -124,10 +116,10 @@ SCHEMA_HINT = (
     'The "comment" string MUST be formatted EXACTLY like this, with no extra prose and no labels: '
     '```suggestion\\n<REPLACEMENT CODE FOR THAT ONE LINE ONLY>\\n```\\n'
     'Rules: (1) the first line is literally ```suggestion and the block ends with ``` on its own line; '
-    '(2) put ONLY the replacement code inside the fence — no explanation inside it; '
+    '(2) put ONLY the replacement code inside the fence; '
     '(3) if you want to explain why, put ONE short sentence AFTER the closing ```; '
-    '(4) NEVER use a ```python or ```yaml or other language-tagged fence; NEVER prefix with [SUGGESTION] or [WARNING] labels; '
-    '(5) the replacement must be a real, compilable one-line (or few-line) fix for that exact diff line. '
+    '(4) NEVER use a ```python or ```yaml fence; NEVER prefix with [SUGGESTION]/[WARNING] labels; '
+    '(5) the replacement must be a real, compilable fix for that exact diff line. '
     'Prefer real, verifiable issues: hardcoded org names, dead/no-op code, wrong API usage, '
     'missing error handling, quoting/heredoc bugs, unused variables. '
     'Line numbers MUST match added/changed lines present in the diff. Do not invent paths or lines.'
@@ -139,9 +131,7 @@ def call_llm(diff_text, pr_title, pr_body):
         "You are Sovereign-ULA's automated code-review agent for an Android app "
         "(a UserLAnd fork, applicationId dev.soveriegn.ula) and its Linux distro "
         "bootstrap shell scripts. You produce INLINE, commit-ready fixes. "
-        "You never write summaries or 'Looks Good' walls. You output strict JSON "
-        "of per-line suggestions using GitHub ```suggestion syntax (literal ```suggestion fence, "
-        "NOT ```python/```yaml, and NO [SUGGESTION]/[WARNING] labels). "
+        "You output strict JSON of per-line suggestions using GitHub ```suggestion syntax. "
         "You are precise: real line numbers, real file paths, real fixes. "
         "No hallucinated boilerplate. No generic security lectures. "
         "You ALWAYS return findings (3-6); you never return an empty list."
@@ -165,89 +155,57 @@ def call_llm(diff_text, pr_title, pr_body):
     req.add_header("Content-Type", "application/json")
     req.add_header("User-Agent", "sovereign-ai-reviewer")
     last_err = None
-    for attempt in range(2):  # one retry on transient timeout
+    for _ in range(2):
         try:
             with urllib.request.urlopen(req, data=json.dumps(payload).encode(), timeout=240) as r:
                 resp = json.loads(r.read().decode())
             break
-        except OSError as e:  # socket.timeout / URLError both subclass OSError
+        except OSError as e:
             last_err = e
-            print(f"LLM call attempt {attempt+1} failed: {e}; retrying...")
+            print(f"LLM call failed: {e}; retrying...")
     else:
         raise last_err
     content = resp["choices"][0]["message"]["content"].strip()
-    # The model may wrap JSON in fences despite instructions; unwrap.
     if content.startswith("```"):
         content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content, flags=re.S)
     data = json.loads(content)
-    # Accept either {"findings": [...]} or a bare array.
     return data.get("findings", data) if isinstance(data, dict) else data
 
 
 # --------------------------------------------------------------------------
-# Post a Pull Request Review with inline comments
+# Apply a suggestion to a real file (agentic fix)
 # --------------------------------------------------------------------------
-def post_review(findings, diff_lines):
-    """findings: list of dicts. diff_lines: parsed diff for validation."""
-    comments = []
-    has_critical = False
-    for f in findings:
-        path = f.get("path")
-        line = int(f.get("line", 0))
-        sev = f.get("severity", "suggestion")
-        body = f.get("comment", "").strip()
-        if not path or line <= 0 or not body:
-            continue
-        # Validate the line exists in the parsed diff for that file.
-        valid_lines = {ln for ln, _ in diff_lines.get(path, [])}
-        if line not in valid_lines:
-            # Nudge to nearest valid line to avoid a 422 from GitHub.
-            cand = [l for l in valid_lines if l >= line]
-            if cand:
-                line = min(cand)
-            else:
-                continue
-        if sev == "critical":
-            has_critical = True
-        comments.append({
-            "path": path,
-            "line": line,
-            "side": "RIGHT",
-            "body": f"**[{sev.upper()}]** {body}",
-        })
-    if not comments:
-        notice = (
-            "## 🤖 AI Agent Review (Sovereign-Ula)\n\n"
-            f"_Model: `{LLM_MODEL}`_\n\n"
-            "No actionable inline issues found. Diff looks clean.\n\n"
-            "---\n*Automated LLM review runner (inline suggestions).*"
-        )
-        github(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", "POST", {"body": notice})
-        print("Posted clean summary (no inline comments).")
-        return
-    event = "REQUEST_CHANGES" if has_critical else "COMMENT"
-    head = github(f"/repos/{REPO}/pulls/{PR_NUMBER}")["head"]["sha"]
-    payload = {
-        "commit_id": head,
-        "event": event,
-        "body": f"## 🤖 AI Agent Review (Sovereign-Ula)\n_Model: `{LLM_MODEL}`_\n"
-                f"{len(comments)} inline suggestion(s). Apply each with the "
-                f"one-click button. {'Requesting changes on critical items.' if has_critical else ''}",
-        "comments": comments,
-    }
-    github(f"/repos/{REPO}/pulls/{PR_NUMBER}/reviews", "POST", payload)
-    print(f"Posted PR review ({event}) with {len(comments)} inline comment(s).")
+def extract_replacement(comment):
+    """Pull the code out of a ```suggestion fence; return list of lines (no fence)."""
+    m = re.search(r"```suggestion\n(.*?)\n```", comment, flags=re.S)
+    if not m:
+        m = re.search(r"```suggestion\s*(.*?)\s*```", comment, flags=re.S)
+    if not m:
+        return None
+    return m.group(1).split("\n")
 
 
+def apply_fix(path, line, replacement_lines):
+    if not os.path.exists(path):
+        return False, f"path not found: {path}"
+    with open(path, "r") as f:
+        lines = f.read().split("\n")
+    idx = line - 1
+    if idx < 0 or idx >= len(lines):
+        return False, f"line {line} out of range (file has {len(lines)} lines)"
+    lines[idx:idx + 1] = replacement_lines
+    with open(path, "w") as f:
+        f.write("\n".join(lines))
+    return True, f"patched {path}:{line}"
+
+
+# --------------------------------------------------------------------------
+# Main
 # --------------------------------------------------------------------------
 def main():
     if not LLM_KEY:
-        notice = (
-            "## AI Agent Review\n\n"
-            "⚠️ No `NVIDIA_API_KEY` / `VIBE_API_KEY` secret configured; AI review "
-            "could not run. Add it in repo Settings → Secrets and variables → Actions."
-        )
-        github(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", "POST", {"body": notice})
+        github(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", "POST",
+               {"body": "## AI Agent Review\n\n⚠️ No `NVIDIA_API_KEY`/`VIBE_API_KEY` secret; AI review could not run."})
         print("No LLM key; posted notice.")
         return
 
@@ -258,15 +216,75 @@ def main():
 
     try:
         findings = call_llm(diff, pr.get("title", ""), pr.get("body", ""))
-    except Exception as e:  # never hard-fail CI on a review hiccup
-        print(f"LLM/review error: {e}")
+    except Exception as e:
         github(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", "POST",
                {"body": f"## AI Agent Review\n\nReview agent error: `{e}`. No review posted."})
+        print(f"LLM error: {e}")
         return
 
     if not isinstance(findings, list):
         findings = []
-    post_review(findings, diff_lines)
+
+    applied = []
+    skipped = []
+    for f in findings:
+        path = f.get("path")
+        line = int(f.get("line", 0))
+        sev = f.get("severity", "suggestion")
+        body = (f.get("comment") or "").strip()
+        if not path or line <= 0 or not body:
+            continue
+        repl = extract_replacement(body)
+        if not repl:
+            skipped.append(f"{path}:{line} (no suggestion block)")
+            continue
+        if AUTO_FIX and sev in ("critical", "warning"):
+            ok, msg = apply_fix(path, line, repl)
+            if ok:
+                applied.append(f"{path}:{line} [{sev}]")
+            else:
+                skipped.append(f"{path}:{line} ({msg})")
+        else:
+            skipped.append(f"{path}:{line} [{sev}] comment-only")
+
+    summary_lines = [f"## 🤖 AI Agent Review (Sovereign-Ula)", f"_Model: `{LLM_MODEL}`_", ""]
+    if applied:
+        head_ref = pr["head"]["ref"]
+        try:
+            subprocess.run(["git", "config", "user.email", "agent@sovereign-ula"], check=True)
+            subprocess.run(["git", "config", "user.name", "sovereign-ai-reviewer"], check=True)
+            subprocess.run(["git", "add", "-A"], check=True)
+            subprocess.run(["git", "commit", "-m",
+                            "fix: apply AI review suggestions (auto)\n\n"
+                            "Agentic PR review: committed inline fixes from the LLM reviewer."],
+                           check=True)
+            subprocess.run(["git", "push", "origin", f"HEAD:{head_ref}"], check=True)
+            summary_lines.append(f"**Auto-fixed {len(applied)} issue(s)** (pushed to `{head_ref}`):")
+            for a in applied:
+                summary_lines.append(f"- ✅ {a}")
+        except subprocess.CalledProcessError as e:
+            summary_lines.append(f"⚠️ Applied {len(applied)} fix(es) locally but push failed: `{e}`.")
+            for a in applied:
+                summary_lines.append(f"- ✅ {a}")
+    if skipped:
+        summary_lines.append("")
+        summary_lines.append(f"Comment-only / skipped ({len(skipped)}):")
+        for s in skipped[:8]:
+            summary_lines.append(f"- ⏭️ {s}")
+    if not applied and not skipped:
+        summary_lines.append("No actionable inline issues found. Diff looks clean.")
+
+    summary_lines.append("")
+    summary_lines.append("*Automated agentic LLM review runner.*")
+    github(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", "POST", {"body": "\n".join(summary_lines)})
+    print(f"Posted summary. applied={len(applied)} skipped={len(skipped)}")
+    # Emit a machine-readable marker so the workflow can decide whether to
+    # auto-merge: APPLIED=<n> means we pushed real fixes; NOFIX means the PR
+    # was clean (nothing to apply). Either way the PR is eligible for merge.
+    if applied:
+        print(f"SOVEREIGN_RESULT=APPLIED={len(applied)}")
+    else:
+        print("SOVEREIGN_RESULT=NOFIX")
 
 
 if __name__ == "__main__":
