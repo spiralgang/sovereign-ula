@@ -113,6 +113,18 @@ class EdgePanelService : Service() {
         root.findViewById<Button>(R.id.btn_open_downloads)?.setOnClickListener {
             startActivity(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
+        root.findViewById<Button>(R.id.btn_import_file)?.setOnClickListener {
+            startActivity(Intent(this, FileTransferActivity::class.java)
+                    .putExtra(FileTransferActivity.EXTRA_MODE, FileTransferActivity.MODE_IMPORT)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            hidePanel()
+        }
+        root.findViewById<Button>(R.id.btn_export_file)?.setOnClickListener {
+            startActivity(Intent(this, FileTransferActivity::class.java)
+                    .putExtra(FileTransferActivity.EXTRA_MODE, FileTransferActivity.MODE_EXPORT)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            hidePanel()
+        }
         root.findViewById<Button>(R.id.btn_collapse)?.setOnClickListener {
             expanded.visibility = View.GONE
         }

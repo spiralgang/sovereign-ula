@@ -64,21 +64,26 @@ separate installable app. This is the correct, reproducible approach.
 6. `apksigner verify`.
 7. Publish signed APK as a GitHub Release (softprops/action-gh-release).
 
-## Current status (as of last edit)
+## Current status (as of 2026-07-15)
 - applicationId, app_name, permissions, Sovereign settings category, EdgePanelService,
-  SovereignApplication (signing enforcement), Arch default — ALL authored.
-- CI: SDK setup + Gradle build + sign + release wired.
-- Blocked on: one Kotlin compile error (`R` resource-class clash with
-  `Build.VERSION_CODES.R`); fix = use `Build.VERSION.SDK_INT >= 30` instead of
-  `VERSION_CODES.R`. (Patch already applied locally; verify green on next run.)
+  SovereignApplication (signing enforcement) — ALL authored.
+- Default distro switched **arch -> ubuntu (Noble 24.04)**.
+- Assets org repointed **CypherpunkArmory -> spiralgang**.
+- `sov_hero.jpeg` is now the single branding image (launcher/round/foreground/notification
+  icons regenerated from it; in-app MOTD background).
+- Modern Noble bootstrap authored under `bootstrap/ubuntu/` (rootfs builder, universal
+  /support layer, glibc/termuxvoid shim, BOTH selinux designs, BOTH SSH designs w/ IMEI anchor).
+- CI: SDK setup + Gradle build + sign + release (build.yml). NEW: `ai-agent-review.yml`
+  (LLM PR review runner) + `distro-deploy-listener.yml` (app-triggered distro tar.gz build).
+- AI Agent PR Review workflow runs green against the NVIDIA LLM (model meta/llama-3.1-8b-instruct).
 
 ## Remaining work
-- [ ] Get `assembleRelease` to produce a signed APK and a published Release.
-- [ ] Add in-app "update available" prompt (optional, user-driven) that checks a
-      release feed and offers to download/install the latest APK.
-- [ ] (Roadmap) Gemini-tracked: glibc/termux shim compat + smart auto-bundle package
-      manager (nala/aptly/aptitude, bash/apt completions, community repos, dedup
-      symlink storage, separate user namespace for command isolation).
+- [x] Get `assembleRelease` to produce a signed APK and a published Release (build.yml does this).
+- [ ] Create the `spiralgang/UserLAnd-Assets-Ubuntu` release assets + `UserLAnd-Assets-Support`
+      distro list so the app can actually pull the Noble rootfs at runtime.
+- [ ] Wire the app's "deploy chosen distro" button to dispatch `distro-deploy-listener.yml`.
+- [ ] Add in-app "update available" prompt (optional, user-driven).
+- [ ] (Roadmap) glibc/termux shim hardening + smart auto-bundle package manager.
 
 ## Environment quirks to remember
 - GitHub Actions runners run Node 24; actions/checkout@v4 + setup-java@v4 print a

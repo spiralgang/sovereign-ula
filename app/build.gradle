@@ -206,7 +206,13 @@ ext.architectures = ["armeabi-v7a", "arm64-v8a", "x86", "x86_64"]
 ext.libDir = "$project.projectDir/src/main/jniLibs"
 
 task downloadAssets(type: Download) {
-    def assetVersion = "v1.2.7"
+    // Build-time native libs (proot/busybox .so) for the supported arches.
+    // The runtime asset fetcher is repointed to spiralgang, but the *build*
+    // libs still live in the upstream CypherpunkArmory support repo, which is
+    // the only one publishing these zips. PR #5 broke this by pointing at
+    // spiralgang/UserLAnd-Assets-Support@v1.2.7 (does not exist -> 404 ->
+    // assembleRelease fails). Use the real, existing source.
+    def assetVersion = "v1.5.1"
     def baseUrl = "https://github.com/CypherpunkArmory/UserLAnd-Assets-Support/releases/download/$assetVersion"
     for (arch in architectures) {
         src "$baseUrl/$arch-assets.zip"

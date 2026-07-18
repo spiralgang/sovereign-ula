@@ -309,4 +309,18 @@
     <string name="sov_accessibility_summary">Enable the Sovereign accessibility service for full control</string>
     <string name="sov_collapse_title">Collapse panel</string>
 
+    <!-- Sovereign Edge Panel: device <-> proot/chroot shell file transfer -->
+    <string name="sov_import_title">Import file to shell</string>
+    <string name="sov_import_summary">Copy a device file into the Linux session (appears at /storage/internal)</string>
+    <string name="sov_export_title">Export file from shell</string>
+    <string name="sov_export_summary">Copy a file from /storage/internal out to device storage</string>
+    <string name="sov_transfer_import_success">Imported to %1$s</string>
+    <string name="sov_transfer_import_failure">Import failed</string>
+    <string name="sov_transfer_export_success">Exported %1$s to device</string>
+    <string name="sov_transfer_export_failure">Export failed</string>
+    <string name="sov_transfer_export_empty">No files in /storage/internal to export yet</string>
+    <string name="sov_transfer_export_pick_title">Pick a file to export</string>
+    <string name="sov_transfer_no_picker">No file picker available on this device</string>
+    <string name="sov_transfer_unknown_mode">Unknown transfer mode</string>
+
 </resources>
