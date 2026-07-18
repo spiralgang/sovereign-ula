@@ -30,7 +30,7 @@ class GithubAppsFetcherTest {
 
     private lateinit var githubAppsFetcher: GithubAppsFetcher
 
-    private val baseUrl = "https://github.com/CypherpunkArmory/UserLAnd-Assets-Support/raw/master/apps"
+    private val baseUrl = "https://github.com/spiralgang/UserLAnd-Assets-Support/raw/master/apps"
     private val appsListUrl = "$baseUrl/apps.txt"
 
     private val appName = "name"
