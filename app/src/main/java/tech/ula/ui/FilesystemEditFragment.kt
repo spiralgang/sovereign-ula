@@ -95,9 +95,9 @@ class FilesystemEditFragment : Fragment() {
             if (!editExisting) {
                 for (i in 0 until spinner_filesystem_type.adapter.count) {
                     if (spinner_filesystem_type.adapter.getItem(i).toString()
-                                    .toLowerCase(Locale.ENGLISH) == "arch") {
+                                    .toLowerCase(Locale.ENGLISH) == "ubuntu") {
                         spinner_filesystem_type.setSelection(i)
-                        filesystem.distributionType = "arch"
+                        filesystem.distributionType = "ubuntu"
                         break
                     }
                 }

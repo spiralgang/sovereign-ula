@@ -27,12 +27,10 @@ class GithubApiClient(
     private val client = OkHttpClient()
     private val latestResults: HashMap<String, ReleasesResponse?> = hashMapOf()
 
-    // This function can be used to tune the release used for each asset type for testing purposes.
+    // All asset repos use the "latest" release tag. Kept as a single-point
+    // tunable in case a distro ever needs a pinned tag.
     private fun getReleaseToUseForRepo(repo: String): String {
-        return when (repo) {
-            "debian" -> "latest"
-            else -> "latest"
-        }
+        return "latest"
     }
 
     @Throws(IOException::class)
@@ -62,7 +60,7 @@ class GithubApiClient(
     private suspend fun queryLatestRelease(repo: String): ReleasesResponse = withContext(Dispatchers.IO) {
         val releaseToUse = getReleaseToUseForRepo(repo)
         val base = urlProvider.getBaseUrl()
-        val url = base + "repos/CypherpunkArmory/UserLAnd-Assets-$repo/releases/$releaseToUse"
+        val url = base + "repos/spiralgang/sovereign-ula/releases/$releaseToUse"
         val moshi = Moshi.Builder().build()
         val adapter = moshi.adapter(ReleasesResponse::class.java)
         val request = Request.Builder()

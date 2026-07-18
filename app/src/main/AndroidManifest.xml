@@ -99,6 +99,12 @@
             android:name="tech.ula.ui.EdgePanelService"
             android:exported="false" />
 
+        <activity
+            android:name="tech.ula.ui.FileTransferActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/TransparentTheme" />
+
         <service
             android:name="tech.ula.ui.SovereignAccessibilityService"
             android:exported="false"
