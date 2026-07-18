@@ -2,7 +2,7 @@
 
 ![SOVEREIGN-ULA](images/sov_hero.jpeg)
 
-**SOVEREIGN-ULA** is a rebasing of UserLAnd (`tech.ula`) Linux-in-a-box shell enviroment,
+## What changes does this PR introduce?
 packaged as a **separate unique distinctly reimagined apk** under our own name, icon, and package
 (`dev.soveriegn.ula`). The UserLAnd shell runtime concept is intact (MainActivity,
 ServerService, UlaDocProvider, Termux activity/service) — this just installs and runs
