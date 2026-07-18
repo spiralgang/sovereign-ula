@@ -27,7 +27,21 @@
 ## What must stay working
 - tech.ula runtime (MainActivity, ServerService, UlaDocProvider, termux terminal).
 - Sovereign additions: SettingsFragment "Sovereign Edge Panel" category, EdgePanelService
-  overlay, SovereignApplication signing enforcement, Arch default distribution.
+  overlay, SovereignApplication signing enforcement, **Ubuntu 24.04 (Noble) default distribution**.
+- The bootstrap contract the runtime expects (see bootstrap/ubuntu/README.md):
+  - `/support/common/extractFilesystem.sh` and `/support/common/compressFilesystem.sh`
+    are invoked by tech.ula — do NOT rename or move them.
+  - `/support/execInProot.sh` is the proot entrypoint.
+  - SELinux is **disabled inside the env** via `/support/ld.so.preload ->
+    libdisableselinux.so` (SECONDARY), with a virtual-kernel proot design as PRIMARY.
+  - BOTH SSH designs run concurrently: device-IMEI anchored SSH (port 2023) AND the
+    original dropbear (port 2022). The ORIGINAL dropbear config is the source-of-truth
+    fallback kept at `/support/original/startSSHServer.sh`.
+
+## Assets org
+- The app now fetches distro rootfs + support assets from `spiralgang/UserLAnd-Assets-*`
+  (was `CypherpunkArmory`). The distro LIST comes from `spiralgang/UserLAnd-Assets-Support`.
+  Keep these two org references in sync if you repoint again.
 
 ## Do not
 - Do not commit `keystore.jks` or any keystore (gitignored).

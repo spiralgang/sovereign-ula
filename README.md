@@ -2,24 +2,44 @@
 
 ![SOVEREIGN-ULA](images/sov_hero.jpeg)
 
-**SOVEREIGN-ULA** is a rebrand of the UserLAnd (`tech.ula`) Linux-in-a-box runtime,
-packaged as a **separate Android app** under our own name, icon, and package
-(`dev.soveriegn.ula`). The full UserLAnd runtime stays intact (MainActivity,
-ServerService, UlaDocProvider, Termux activity/service) — it just installs and runs
-on its own, distinct from stock UserLAnd.
+**SOVEREIGN-ULA** is a rebasing of the UserLAnd (`tech.ula`) Linux-in-a-box shell environment,
+packaged as a **separate, unique, and distinctly reimagined APK** under our own name, icon, and package
+(`dev.soveriegn.ula`). The UserLAnd shell runtime concept is intact (MainActivity,
+ServerService, UlaDocProvider, Termux activity/service) — this just installs and runs
+on its own settings, theme, process, evolved concept, and updated bootstrap packages, distinct from stock UserLAnd (this is essentially to UserLAnd what Termux is to Android — *rebased and reimagined*).
 
 ## Unique features we add on top
 
-- **Sovereign settings screen** — enumerates the entire requested permission suite
+- **Sovereign settings screen** —
+  This enumerates the entire requested permission suite
   with deep links into Android's per-permission screens.
-- **Sovereign Edge Panel** — a Samsung-style swipe-out edge panel (a slim handle on
+- **Sovereign Edge Panel Services** —
+  A Samsung-style swipe-out edge panel (a slim handle on
   the right screen edge that expands into the full settings panel) with buttons to
   open settings, grant all permissions, manage all-files access, overlay permission,
   accessibility, and Downloads.
-- **No funding popups** — the stock UserLAnd contribution/donation prompt is removed.
-- **In-app billing disabled** — no billing client is initialised.
-- **Mandatory signing certificate** — the app aborts unless signed by our release cert.
-- **Arch Linux** as the default / auto-bootstrap distribution.
+- **No funding popups** —
+  The stock UserLAnd contribution/donation prompt removed.
+- **In-app billing disabled** —
+  Absolutely no billing client is initialised/no premium only features.
+- **Mandatory signing certificate** —
+  The app aborts unless signed by our privileged release certificates.
+- **Arch Linux** —
+  As the default / auto-bootstrap distribution chroot/proot environment compiler
+- **Aarch64 Compatible Translator** — Updated and evolved packages.
+- **A.G.I. Prepped** — AI services prepped on bootstrap.
+- **Settings Walk-Through** — MOTD header walk-through of settings and how to access them.
+- **Device Import/Export** — Import and export device files.
+- **Accessibility Suite Permissions** — Android accessibility permissions.
+- **Shell Evolution & Hardening** — Evolving and hardening the existing shell and environment.
+- **Preset Dev Environment Configs** — Ready-to-use preset environments for developer configurations.
+***Plus much, much more!***
+
+
+ 
+---
+---
+---
 
 ## How it's built
 

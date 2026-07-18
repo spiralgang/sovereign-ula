@@ -98,6 +98,36 @@ class UlaDocProvider : DocumentsProvider() {
         file.delete()
     }
 
+    /**
+     * In-app search inside explorers (CX / X / ES / Samsung My Files) walks the
+     * tree for names containing [query], case-insensitive, capped for safety.
+     * Without this, the base DocumentsProvider throws UnsupportedOperationException
+     * and explorer search silently fails.
+     */
+    override fun querySearchDocuments(
+        rootId: String?,
+        query: String?,
+        projection: Array<out String>?
+    ): Cursor {
+        val result = MatrixCursor(projection ?: defaultDocumentProjection)
+        val root = getFileForDocId(rootId ?: "")
+        if (root.exists() && !query.isNullOrBlank()) {
+            val needle = query.toLowerCase()
+            searchInto(root, needle, result, 0)
+        }
+        return result
+    }
+
+    private fun searchInto(dir: File, needle: String, result: MatrixCursor, depth: Int) {
+        if (depth > 12) return
+        val children = dir.listFiles() ?: return
+        for (file in children) {
+            if (result.count >= 500) return
+            if (file.name.toLowerCase().contains(needle)) includeFile(result, file)
+            if (file.isDirectory) searchInto(file, needle, result, depth + 1)
+        }
+    }
+
     private fun addUlaRoots(result: MatrixCursor): Cursor {
         val baseEmulatedDir = ulaFiles.emulatedUserDir
         result.newRow().apply {
@@ -106,8 +136,14 @@ class UlaDocProvider : DocumentsProvider() {
             add(Root.COLUMN_ROOT_ID, getDocIdForFile(baseEmulatedDir))
             add(Root.COLUMN_DOCUMENT_ID, getDocIdForFile(baseEmulatedDir))
 
-            // Allow creation and searching
-            add(Root.COLUMN_FLAGS, Root.FLAG_SUPPORTS_CREATE)
+            // Explorer-grade flags: create + search + recents + local-only so
+            // CX/X/ES/Samsung My Files treat this as a real local volume
+            // (the same contract Termux exposes for its home dir).
+            add(Root.COLUMN_FLAGS,
+                    Root.FLAG_SUPPORTS_CREATE or
+                    Root.FLAG_SUPPORTS_RECENTS or
+                    Root.FLAG_SUPPORTS_SEARCH or
+                    Root.FLAG_LOCAL_ONLY)
             add(Root.COLUMN_ICON, R.mipmap.ic_launcher)
             add(Root.COLUMN_AVAILABLE_BYTES, baseEmulatedDir.freeSpace)
         }
@@ -119,8 +155,11 @@ class UlaDocProvider : DocumentsProvider() {
                 add(Root.COLUMN_ROOT_ID, getDocIdForFile(baseSdCardDir))
                 add(Root.COLUMN_DOCUMENT_ID, getDocIdForFile(baseSdCardDir))
 
-                // Allow creation and searching
-                add(Root.COLUMN_FLAGS, Root.FLAG_SUPPORTS_CREATE)
+                add(Root.COLUMN_FLAGS,
+                        Root.FLAG_SUPPORTS_CREATE or
+                        Root.FLAG_SUPPORTS_RECENTS or
+                        Root.FLAG_SUPPORTS_SEARCH or
+                        Root.FLAG_LOCAL_ONLY)
                 add(Root.COLUMN_ICON, R.mipmap.ic_launcher)
                 add(Root.COLUMN_AVAILABLE_BYTES, baseSdCardDir.freeSpace)
             }
