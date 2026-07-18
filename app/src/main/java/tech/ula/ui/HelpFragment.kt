@@ -20,7 +20,7 @@ class HelpFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         github_logo.setOnClickListener {
-            val intent = Intent("android.intent.action.VIEW", Uri.parse("https://github.com/CypherpunkArmory/UserLAnd/issues"))
+            val intent = Intent("android.intent.action.VIEW", Uri.parse("https://github.com/spiralgang/sovereign-ula/issues"))
             startActivity(intent)
         }
 

@@ -1,0 +1,235 @@
+name: "Hermes FSM & Architecture Enforcer"
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'bootstrap/**'
+      - 'release/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+env:
+  # Define the absolute ground truth for the architecture
+  CORE_DIR: "bootstrap/core"
+  BANNED_DISTRO_DIRS: "assets input support"
+  BANNED_DISTRO_FILES: "extractFilesystem.sh addNonRootUser.sh termuxvoid-shim.sh busybox tvrun main.sh"
+
+jobs:
+  fsm-hard-validation:
+    name: "Phase 1: Physical FSM Matrix Check"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Assert Directory State Machine
+        id: fsm-check
+        run: |
+          echo "::group::Executing FSM Traversal"
+          VIOLATION_COUNT=0
+          REPORT_FILE="fsm_violations.md"
+          echo "### Hermes Architecture Violations" > $REPORT_FILE
+          
+          # 1. Ensure Core exists
+          if [ ! -d "$CORE_DIR" ]; then
+            echo "- **CRITICAL**: FSM STATE 1 is missing. \`$CORE_DIR\` must exist." >> $REPORT_FILE
+            VIOLATION_COUNT=$((VIOLATION_COUNT + 1))
+          fi
+
+          # 2. Sweep all distro directories
+          for DISTRO_PATH in bootstrap/*/; do
+            DISTRO=$(basename "$DISTRO_PATH")
+            if [ "$DISTRO" = "core" ]; then continue; fi
+
+            echo "Validating STATE 2 (Distro Target): $DISTRO"
+
+            # 2a. Check for forbidden directories
+            for banned_dir in $BANNED_DISTRO_DIRS; do
+              if [ -d "${DISTRO_PATH}${banned_dir}" ]; then
+                echo "- **FSM-ERR-01**: Found forbidden directory \`${DISTRO_PATH}${banned_dir}\`. Distro folders are dump targets. Move logic to \`bootstrap/core/\`." >> $REPORT_FILE
+                VIOLATION_COUNT=$((VIOLATION_COUNT + 1))
+              fi
+            done
+
+            # 2b. Check for forbidden FSM State 1 scripts injected into State 2
+            for banned_file in $BANNED_DISTRO_FILES; do
+              # We use find to catch nested hallucinations
+              if find "$DISTRO_PATH" -type f -name "$banned_file" | grep -q .; then
+                echo "- **FSM-ERR-02**: Halucinated agnostic asset \`$banned_file\` in \`$DISTRO_PATH\`. Must be centrally located in \`$CORE_DIR\`." >> $REPORT_FILE
+                VIOLATION_COUNT=$((VIOLATION_COUNT + 1))
+              fi
+            done
+            
+            # 2c. Enforce Distro Requirements (Must have Dockerfile)
+            if [ ! -f "${DISTRO_PATH}Dockerfile" ]; then
+              echo "- **FSM-ERR-03**: Distro \`$DISTRO\` is missing a \`Dockerfile\`." >> $REPORT_FILE
+              VIOLATION_COUNT=$((VIOLATION_COUNT + 1))
+            fi
+          done
+          
+          echo "::endgroup::"
+          
+          if [ $VIOLATION_COUNT -gt 0 ]; then
+            echo "FSM Tripwire Failed with $VIOLATION_COUNT violations."
+            cat $REPORT_FILE
+            # We don't exit 1 yet. We pass this to the LLM to format for Hermes.
+            echo "fsm_failed=true" >> $GITHUB_OUTPUT
+          else
+            echo "fsm_failed=false" >> $GITHUB_OUTPUT
+            echo "FSM Tree is strictly compliant."
+          fi
+
+      - name: Upload Violation Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fsm-report
+          path: fsm_violations.md
+
+  agentic-review-protocol:
+    name: "Phase 2: LLM Architect Review"
+    needs: fsm-hard-validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch PR Diff
+        id: get_diff
+        run: |
+          git diff origin/${{ github.event.pull_request.base.ref }}...HEAD > pr.diff
+          echo "diff_len=$(wc -l < pr.diff)" >> $GITHUB_OUTPUT
+
+      - name: Execute LLM Reviewer (Node.js)
+        uses: actions/github-script@v7
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          FSM_FAILED: ${{ needs.fsm-hard-validation.outputs.fsm_failed }}
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // 1. Read the Diff & FSM Status
+            const prDiff = fs.readFileSync('pr.diff', 'utf8');
+            let fsmViolations = "";
+            if (process.env.FSM_FAILED === 'true') {
+              try {
+                // We use a GH action artifact workaround in real life, but for standard FS context:
+                const { execSync } = require('child_process');
+                execSync('gh run download ${{ github.run_id }} -n fsm-report');
+                fsmViolations = fs.readFileSync('fsm_violations.md', 'utf8');
+              } catch (e) {
+                fsmViolations = "FSM Hard Validations Failed, but report could not be loaded.";
+              }
+            }
+
+            // 2. Define the absolute FSM Architecture Manifesto
+            const systemPrompt = `
+            You are the FSM Enforcer and Principal Architect reviewing an autonomous coding agent named Hermes.
+            Hermes is building a custom Android environment ("Sovereign ULA") using aarch64 glibc roots.
+            
+            CRITICAL FSM RULES:
+            
+            [STATE 1: AGNOSTIC CORE]
+            - Path: \`bootstrap/core/\`
+            - Purpose: Universal execution glue, FHS mapping, and runtime translation layers.
+            - Rules: \`termuxvoid-shim.sh\` (which maps /data/data/com.termux/files/usr -> /usr and handles LD_LIBRARY_PATH wrappers like \`tvrun\`), \`extractFilesystem.sh\`, and \`addNonRootUser.sh\` MUST LIVE HERE AND ONLY HERE.
+            
+            [STATE 2: DISTRO TARGETS]
+            - Path: \`bootstrap/$DISTRO/\` (e.g. ubuntu, alpine)
+            - Purpose: Pull-spec definitions (deb822 sources), base layers, and package lists.
+            - Rules: These folders are completely dumb. They may ONLY contain a \`Dockerfile\` and a package build script if necessary. They MUST NOT contain \`assets/\`, \`input/\`, or ANY agnostic shell scripts.
+            
+            [STATE 3: ASSEMBLY]
+            - The packaging pipeline (e.g. \`build.sh\` or GitHub Actions) is responsible for copying \`bootstrap/core/*\` into the distro tarball release. Hermes must not manually copy files between distro folders in the repo tree.
+
+            YOUR TASK:
+            Analyze the provided PR diff and the FSM Hard Validation Report (if any).
+            If Hermes violates ANY boundary, you must generate a strict, machine-readable JSON response formatted for Hermes to immediately execute a fix.
+            
+            Output format MUST BE exactly this JSON structure (and nothing else):
+            {
+              "decision": "APPROVE" | "REQUEST_CHANGES",
+              "fsm_state_violations": ["List FSM states violated"],
+              "hermes_actionable_directives": [
+                "1. Move bootstrap/ubuntu/assets/termuxvoid-shim.sh to bootstrap/core/",
+                "2. Delete bootstrap/ubuntu/assets/ entirely"
+              ],
+              "review_comment": "A blunt, direct message to the agent explaining why it failed."
+            }`;
+
+            const userPrompt = `
+            FSM Validation Report:
+            ${fsmViolations}
+            
+            PR Diff:
+            ${prDiff.substring(0, 50000)} // Cap to prevent token limit bursts
+            `;
+
+            console.log("Transmitting payload to LLM API...");
+
+            // 3. Call the LLM (using standard fetch API available in Node 18+)
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: userPrompt }
+                ],
+                response_format: { type: "json_object" }
+              })
+            });
+
+            const data = await response.json();
+            
+            if (!data.choices || !data.choices[0]) {
+               console.error("LLM API failed:", data);
+               process.exit(1);
+            }
+
+            const review = JSON.parse(data.choices[0].message.content);
+            console.log("LLM Decision:", review);
+
+            // 4. Dispatch the Review back to GitHub PR
+            let body = `### 🤖 Architect Agent FSM Review\n\n**Decision:** ${review.decision}\n\n`;
+            
+            if (review.decision === "REQUEST_CHANGES") {
+              body += `#### 🚨 FSM Violations Detected\n`;
+              review.fsm_state_violations.forEach(v => body += `- ${v}\n`);
+              body += `\n#### 🛠️ Directives for Hermes\n`;
+              body += `\`\`\`text\n${review.hermes_actionable_directives.join('\n')}\n\`\`\`\n\n`;
+              body += `**Architect Note:** ${review.review_comment}`;
+              
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                body: body,
+                event: 'REQUEST_CHANGES'
+              });
+              
+              // Force CI to fail so Hermes triggers a re-eval loop
+              core.setFailed("Architecture validation failed. Hermes must resolve FSM directives.");
+            } else {
+              body += `✅ FSM architecture is strictly compliant. Ready for assembly.`;
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                body: body,
+                event: 'APPROVE'
+              });
+            }

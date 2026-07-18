@@ -13,4 +13,15 @@
         <item name="android:textSize">14sp</item>
     </style>
 
+    <!-- Transparent theme for the FileTransferActivity: it only shows SAF
+         pickers / a small chooser dialog, so its own window must be invisible. -->
+    <style name="TransparentTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
 </resources>
