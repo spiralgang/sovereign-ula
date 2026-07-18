@@ -26,22 +26,16 @@ on its own settings, theme, process, evolved concept, and updated bootstrap pack
   The app aborts unless signed by our privileged release certificates.
 - **Arch Linux** —
   As the default / auto-bootstrap distribution chroot/proot environment compiler
-- **Aarch64-Unknown-Linux-Glibc Compatible Translator** —
-  Updated && evolved packages so that the Linux-GNU environment is duly compatible with Linux-GLIBC
-- **A.G.I Prepped** —
-  A.I services prepped on bootstrap
-- **Settings Walk Through** —
-  MOTD HEADER WALK THROUGH OF SETTINGS AND HOW TO ACCESS THEM
-- **DEVICE IMPORT-EXPORT** —
-  IMPORT-EXPORT DEVICE FILES
-- **ACCESSIBILITY SUITE PERMISSIONS** —
-  ANDROID PERMISSIONS ACCESSIBILITY PERMISSIONS
-- **SHELL EVOLUTION && HARDENING** —
-  EVOLVING && HARDENING EXISTING SHELL && ENVIRONMENT
-- **PRESET DEV ENVIRONMENT CONFIGS** —
- READY-TO-USE PRESET ENVIRONMENT FOR DEVELOPER CONFIGURATIONS
+- **Aarch64 Compatible Translator** — Updated and evolved packages.
+- **A.G.I. Prepped** — AI services prepped on bootstrap.
+- **Settings Walk-Through** — MOTD header walk-through of settings and how to access them.
+- **Device Import/Export** — Import and export device files.
+- **Accessibility Suite Permissions** — Android accessibility permissions.
+- **Shell Evolution & Hardening** — Evolving and hardening the existing shell and environment.
+- **Preset Dev Environment Configs** — Ready-to-use preset environments for developer configurations.
+***Plus much, much more!***
 
- ##*PLUS MUCH, MUCH MORE*
+
  
 ---
 ---
