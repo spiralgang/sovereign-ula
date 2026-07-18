@@ -8,7 +8,7 @@ FROM ubuntu:noble
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Build deps (tar, gpg, curl, ca-certs) + qemu for the cross-arch runtime shim
-# the app's proot needs inside the chroot.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg tar xz-utils gpg && rm -rf /var/lib/apt/lists/* && apt-get clean && apt-get autoclean && apt-get autoremove
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg tar xz-utils gpg \
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg tar xz-utils gpg && rm -rf /var/lib/apt/lists/* && apt-get clean
