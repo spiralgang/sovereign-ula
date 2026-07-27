@@ -19,9 +19,16 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 # --- base networking for the chroot ---
-echo "127.0.0.1 localhost" > /etc/hosts
-echo "nameserver 8.8.8.8"  > /etc/resolv.conf
-echo "nameserver 1.1.1.1" >> /etc/resolv.conf
+# NOTE: inside `docker build`, /etc/hosts and /etc/resolv.conf are read-only
+# bind mounts managed by Docker — writing them fails the build. Docker's own
+# copies already provide working DNS during the build. Write our runtime
+# versions to staging paths; the app's proot environment uses these, and the
+# bind-mounted originals are excluded from the packaged rootfs anyway.
+echo "127.0.0.1 localhost" > /etc/hosts.sovereign || true
+{ echo "nameserver 8.8.8.8"; echo "nameserver 1.1.1.1"; } > /etc/resolv.conf.sovereign || true
+# Best-effort for real (non-docker) chroot bootstraps where these ARE writable:
+echo "127.0.0.1 localhost" > /etc/hosts 2>/dev/null || true
+{ echo "nameserver 8.8.8.8"; echo "nameserver 1.1.1.1"; } > /etc/resolv.conf 2>/dev/null || true
 
 # --- modern sources: Ubuntu 24.04 (Noble), deb822 format ---
 cat > /etc/apt/sources.list.d/ubuntu.sources <<'EOF'
