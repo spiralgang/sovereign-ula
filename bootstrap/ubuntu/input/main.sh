@@ -140,17 +140,11 @@ install -Dm644 /input/support/userland_profile.sh      /support/userland_profile
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 
-# --- tar the rootfs (exclude virtual fs + build artifacts) ---
-tar -czvf /output/rootfs.tar.gz \
-    --exclude sys --exclude dev --exclude proc \
-    --exclude mnt --exclude etc/mtab \
-    --exclude output --exclude input --exclude .dockerenv \
-    /
+# --- packaging is handled by the Dockerfile, NOT here ---
+# The Dockerfile's later layers tar the whole image filesystem into
+# /output/rootfs.tar.gz, compile libdisableselinux.so, and export busybox
+# via the scratch 'rootfs' stage. Doing it here too caused a broken-pipe
+# tar failure (/output does not exist in this layer) and would have doubled
+# the work. This script's job ends with a fully bootstrapped filesystem.
 
-# --- static busybox + selinux-disable shim for early extraction ---
-apt-get update
-apt-get -y install busybox-static build-essential
-cp /bin/busybox /output/busybox
-gcc -shared -fpic /input/disableselinux.c -o /output/libdisableselinux.so
-
-echo "rootfs build complete: $(du -h /output/rootfs.tar.gz | cut -f1)"
+echo "noble bootstrap complete (packaging deferred to Dockerfile)"
