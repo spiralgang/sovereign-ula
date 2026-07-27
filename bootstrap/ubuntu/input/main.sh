@@ -2,8 +2,9 @@
 #
 # Sovereign ULA — Ubuntu 24.04 (Noble) rootfs bootstrap builder.
 #
-# Runs INSIDE a noble container (see Dockerfile). Produces /output/rootfs.tar.gz
-# that, once extracted by the app's /support/common/extractFilesystem.sh, yields a
+# Runs INSIDE a noble container (see Dockerfile). Bootstraps the filesystem;
+# the Dockerfile's later layers package it into /output/rootfs.tar.gz. Once
+# extracted by the app's /support/common/extractFilesystem.sh, it yields a
 # complete chroot whose /support tree matches exactly what tech.ula expects:
 #   /support/common/extractFilesystem.sh
 #   /support/common/compressFilesystem.sh
