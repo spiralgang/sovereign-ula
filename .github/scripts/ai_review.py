@@ -18,7 +18,7 @@ Secrets:
   GITHUB_TOKEN   auto-provided by Actions (needs contents:write + pull-requests:write)
   NVIDIA_API_KEY / VIBE_API_KEY  LLM bearer token
   LLM_BASE_URL   chat-completions endpoint (default NVIDIA)
-  LLM_MODEL      model id (default abacusai/dracarys-llama-3.1-70b-instruct)
+  LLM_MODEL      model id (default deepseek-ai/deepseek-v4-pro)
   AUTO_FIX       "false" to only comment and never push (default "true")
 """
 import os
@@ -36,7 +36,7 @@ TOKEN = os.environ["GITHUB_TOKEN"]
 AUTO_FIX = os.environ.get("AUTO_FIX", "true").lower() != "false"
 
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL") or "https://integrate.api.nvidia.com/v1/chat/completions"
-LLM_MODEL = os.environ.get("LLM_MODEL") or "abacusai/dracarys-llama-3.1-70b-instruct"
+LLM_MODEL = os.environ.get("LLM_MODEL") or "deepseek-ai/deepseek-v4-pro"
 LLM_KEY = os.environ.get("NVIDIA_API_KEY") or os.environ.get("VIBE_API_KEY")
 
 
