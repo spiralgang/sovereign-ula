@@ -94,4 +94,4 @@ jobs:
             release/arm-assets.txt
             release/x86_64-assets.txt
             release/x86-assets.txt
-        token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}

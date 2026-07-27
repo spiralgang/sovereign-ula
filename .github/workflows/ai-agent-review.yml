@@ -81,8 +81,26 @@ jobs:
           HEAD_REF: ${{ steps.pr.outputs.head_ref }}
         run: |
           echo "Triggering build.yml on branch $HEAD_REF to verify edits..."
-          RUN_ID=$(gh workflow run build.yml -R "${{ github.repository }}" \
-                     -r "$HEAD_REF" -f build_ref="$HEAD_REF" 2>/dev/null | grep -oE '[0-9]+$')
+          # gh workflow run prints nothing on stdout, so we can't grep a run id
+          # from it. Dispatch, then poll for the newest build.yml run on this ref.
+          gh workflow run build.yml -R "${{ github.repository }}" \
+            -r "$HEAD_REF" -f build_ref="$HEAD_REF" || {
+              echo "::error::Failed to dispatch build.yml on $HEAD_REF"
+              echo "build=dispatch-failed" >> "$GITHUB_OUTPUT"
+              exit 0
+            }
+          RUN_ID=""
+          for i in $(seq 1 12); do
+            sleep 5
+            RUN_ID=$(gh run list -R "${{ github.repository }}" -w build.yml \
+                       -b "$HEAD_REF" -L 1 --json databaseId -q '.[0].databaseId' 2>/dev/null)
+            [ -n "$RUN_ID" ] && break
+          done
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::Could not locate dispatched build run on $HEAD_REF"
+            echo "build=not-found" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           echo "build run: $RUN_ID"
           # Wait for that build to finish (green or red).
           STATUS=""
