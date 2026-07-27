@@ -31,15 +31,29 @@ echo "127.0.0.1 localhost" > /etc/hosts 2>/dev/null || true
 { echo "nameserver 8.8.8.8"; echo "nameserver 1.1.1.1"; } > /etc/resolv.conf 2>/dev/null || true
 
 # --- modern sources: Ubuntu 24.04 (Noble), deb822 format ---
-cat > /etc/apt/sources.list.d/ubuntu.sources <<'EOF'
+# archive.ubuntu.com only serves amd64/i386; arm64 + armhf packages live on
+# ports.ubuntu.com. Pick the mirror by the arch we're actually building, or
+# apt dies with "index files failed to download" on ARM builds.
+DPKG_ARCH="$(dpkg --print-architecture)"
+case "$DPKG_ARCH" in
+  amd64|i386)
+    MIRROR="http://archive.ubuntu.com/ubuntu/"
+    SECURITY="http://security.ubuntu.com/ubuntu/"
+    ;;
+  *)
+    MIRROR="http://ports.ubuntu.com/ubuntu-ports/"
+    SECURITY="http://ports.ubuntu.com/ubuntu-ports/"
+    ;;
+esac
+cat > /etc/apt/sources.list.d/ubuntu.sources <<EOF
 Types: deb
-URIs: http://archive.ubuntu.com/ubuntu/
+URIs: $MIRROR
 Suites: noble noble-updates noble-backports
 Components: main restricted universe multiverse
 Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 
 Types: deb
-URIs: http://security.ubuntu.com/ubuntu/
+URIs: $SECURITY
 Suites: noble-security
 Components: main restricted universe multiverse
 Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
