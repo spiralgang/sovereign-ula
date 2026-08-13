@@ -27,17 +27,24 @@ class GithubApiClient(
     private val client = OkHttpClient()
     private val latestResults: HashMap<String, ReleasesResponse?> = hashMapOf()
 
-    // All asset repos use the "latest" release tag. Kept as a single-point
-    // tunable in case a distro ever needs a pinned tag.
+    // Distro assets are published by distro-deploy-listener.yml as releases
+    // TAGGED with the distro name (ubuntu | debian | arch), NOT as "latest".
+    // "latest" is whatever release was created most recently — which is the
+    // signed APK release from build.yml, containing no distro assets. Using
+    // "latest" made every asset lookup fail (NPE crash on session start and a
+    // bogus "network required" error even with connectivity).
     private fun getReleaseToUseForRepo(repo: String): String {
-        return "latest"
+        return "tags/$repo"
     }
 
     @Throws(IOException::class)
     suspend fun getAssetsListDownloadUrl(repo: String): String = withContext(Dispatchers.IO) {
         val result = latestResults[repo] ?: queryLatestRelease(repo)
+        val assetName = "${ulaFiles.getArchType()}-assets.txt"
 
-        return@withContext result.assets.find { it.name == "${ulaFiles.getArchType()}-assets.txt" }!!.downloadUrl
+        val asset = result.assets.find { it.name == assetName }
+                ?: throw IOException("Release '${result.tag}' has no asset '$assetName'")
+        return@withContext asset.downloadUrl
     }
 
     @Throws(IOException::class)
@@ -52,7 +59,9 @@ class GithubApiClient(
         val result = latestResults[repo] ?: queryLatestRelease(repo)
         val assetName = "${ulaFiles.getArchType()}-$assetType"
 
-        return@withContext result.assets.find { it.name == assetName }!!.downloadUrl
+        val asset = result.assets.find { it.name == assetName }
+                ?: throw IOException("Release '${result.tag}' has no asset '$assetName'")
+        return@withContext asset.downloadUrl
     }
 
     // Query latest release data and memoize results.
