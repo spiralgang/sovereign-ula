@@ -18,7 +18,7 @@ Secrets:
   GITHUB_TOKEN   auto-provided by Actions (needs contents:write + pull-requests:write)
   NVIDIA_API_KEY / VIBE_API_KEY  LLM bearer token
   LLM_BASE_URL   chat-completions endpoint (default NVIDIA)
-  LLM_MODEL      model id (default abacusai/dracarys-llama-3.1-70b-instruct)
+  LLM_MODEL      model id (default deepseek-ai/deepseek-v4-pro)
   AUTO_FIX       "false" to only comment and never push (default "true")
 """
 import os
@@ -36,8 +36,52 @@ TOKEN = os.environ["GITHUB_TOKEN"]
 AUTO_FIX = os.environ.get("AUTO_FIX", "true").lower() != "false"
 
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL") or "https://integrate.api.nvidia.com/v1/chat/completions"
-LLM_MODEL = os.environ.get("LLM_MODEL") or "abacusai/dracarys-llama-3.1-70b-instruct"
+LLM_MODEL_CHAIN = [m for m in [
+    os.environ.get("LLM_MODEL"),
+    "deepseek-ai/deepseek-v4-pro",
+    "meta/llama-3.3-70b-instruct",
+    "meta/llama-3.1-70b-instruct",
+    "mistralai/mistral-large",
+] if m]
+# same day). Never depend on a single id: try LLM_MODEL first, then fall back
+# through known-stable models. First model that answers is used.
+LLM_MODEL_CHAIN = [m for m in [
+    os.environ.get("LLM_MODEL"),
+    "deepseek-ai/deepseek-v4-pro",
+    "meta/llama-3.3-70b-instruct",
+    "meta/llama-3.1-70b-instruct",
+    "mistralai/mistral-large",
+] if m]
+    global LLM_MODEL
+    if not LLM_MODEL_CHAIN:
+        print("::warning::No model candidates available; using hardcoded fallback.")
+        LLM_MODEL = "deepseek-ai/deepseek-v4-pro"
+        return LLM_MODEL
+    for candidate in LLM_MODEL_CHAIN:
 LLM_KEY = os.environ.get("NVIDIA_API_KEY") or os.environ.get("VIBE_API_KEY")
+
+
+def resolve_llm_model():
+    """Probe the chain with a 1-token ping; pin the first model that answers."""
+    global LLM_MODEL
+    for candidate in LLM_MODEL_CHAIN:
+        body = json.dumps({
+            "model": candidate,
+            "messages": [{"role": "user", "content": "ping"}],
+            "max_tokens": 1,
+        }).encode()
+        req = urllib.request.Request(LLM_BASE_URL, data=body, method="POST")
+        req.add_header("Authorization", f"Bearer {LLM_KEY}")
+        req.add_header("Content-Type", "application/json")
+        try:
+            urllib.request.urlopen(req, timeout=30)
+            LLM_MODEL = candidate
+            print(f"LLM model resolved: {candidate}")
+            return candidate
+        except Exception as err:
+            print(f"model unavailable, trying next: {candidate} ({err})")
+    print("::warning::No model in the fallback chain responded; using first entry.")
+    return LLM_MODEL
 
 
 # --------------------------------------------------------------------------
@@ -208,6 +252,8 @@ def main():
                {"body": "## AI Agent Review\n\n⚠️ No `NVIDIA_API_KEY`/`VIBE_API_KEY` secret; AI review could not run."})
         print("No LLM key; posted notice.")
         return
+
+    resolve_llm_model()
 
     pr = github(f"/repos/{REPO}/pulls/{PR_NUMBER}")
     diff = get_diff()
