@@ -171,6 +171,17 @@ class DownloadManagerWrapper(private val downloadManager: DownloadManager) {
         request.setDescription("Downloading ${destination.name.substringAfterLast("-")}.")
         request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
         request.setDestinationUri(destinationUri)
+        // Allow downloads on metered networks and roaming to avoid silent pause on some Wi-Fi
+        try {
+            request.setAllowedOverMetered(true)
+            request.setAllowedOverRoaming(true)
+        } catch (ignored: NoSuchMethodError) {
+            // Older API levels may not have these methods; ignore there.
+        }
+        // Add Sovereign user-agent header where supported
+        try {
+            request.addRequestHeader("User-Agent", "SovereignULA/1.0")
+        } catch (ignored: Exception) {}
         return request
     }
 
