@@ -1,0 +1,33 @@
+name: Daily Security Scan
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Every day at 6 AM
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: google-labs-code/jules-invoke@v1
+        with:
+          prompt: |
+            You are a security agent. Scan for vulnerabilities and fix them:
+
+            CRITICAL (fix immediately):
+            - Hardcoded secrets, API keys, passwords
+            - SQL injection, command injection
+            - Missing auth on sensitive endpoints
+
+            HIGH PRIORITY:
+            - XSS, CSRF vulnerabilities
+            - Insecure direct object references
+            - Missing input validation
+
+            Rules:
+            - Fix highest severity first
+            - Keep changes under 100 lines
+            - Run tests before creating PR
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
