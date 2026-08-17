@@ -72,8 +72,8 @@ jobs:
             --ks-key-alias "${{ secrets.SOVEREIGN_KEY_ALIAS }}" \
             --ks-pass pass:"${{ secrets.SOVEREIGN_KEYSTORE_PASSWORD }}" \
             --key-pass pass:"${{ secrets.SOVEREIGN_KEY_PASSWORD }}" \
-            --out app-release-signed.apk \
-            app/build/outputs/apk/release/app-release-unsigned.apk
+            --out sovereign-ula.apk \
+            app/build/outputs/apk/release/sovereign-ula.apk
 
       - name: Verify signature
         run: $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner verify app-release-signed.apk && echo "SIGNATURE OK"
@@ -98,15 +98,15 @@ jobs:
           name: SOVEREIGN-ULA v1.0.${{ github.run_number }}
           body: |
             Standalone SOVEREIGN-ULA app (package dev.soveriegn.ula)
-            rebranded from the UserLAnd (tech.ula) runtime. Signed with the
+            rebranded runtime. Signed with the
             mandatory Sovereign release certificate.
 
             - Full permission suite (MANAGE_EXTERNAL_STORAGE, SYSTEM_ALERT_WINDOW, etc.)
             - Sovereign settings screen + floating edge-panel overlay
             - In-app billing disabled
             - Mandatory signing-certificate enforcement
-            - Default distribution: Arch Linux (auto-bootstrap latest)
-          files: app-release-signed.apk
+            - Default distribution: Aarch64 Linux (auto-bootstrap latest)
+          files: sovereign-ula.apk
           # rename the published asset to sovereign-ula.apk
           asset_name: sovereign-ula.apk
         env:
