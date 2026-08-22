@@ -90,6 +90,9 @@ android {
             debuggable false
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            packagingOptions {
+                doNotStrip '**/*.so'
+            }
         }
     }
 
@@ -231,10 +234,17 @@ task fetchAssets(dependsOn: downloadAssets) {
             copy {
                 from "$buildDir/$arch"
                 into "$libDir/$arch"
-                // Lib files must start with 'lib' and end with '.so.'
+                // Only rename actual binary files to .so
+                include '**/*.so', '**/busybox', '**/proot'
                 rename '(.*)', 'lib_$1.so'
             }
-            new File("$libDir/$arch","lib_arch.so").text = "$arch"
+            // Handle arch marker file separately (NOT as .so)
+            copy {
+                from "$buildDir/$arch"
+                into "$libDir/$arch"
+                include 'arch.txt'
+                rename 'arch.txt', 'lib_arch.txt'
+            }
         }
     }
 }
