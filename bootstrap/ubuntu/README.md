@@ -16,6 +16,32 @@ rootfs** on top to operate. So:
 - `build.sh` packages `release/<arch>-rootfs.tar.gz` + `release/<arch>-assets.tar.gz`
   in the layout the app already pulls from `spiralgang/UserLAnd-Assets-Ubuntu`.
 
+## FSM Architecture: File Organization Rules
+
+**All distro builds MUST respect the Finite State Machine (FSM) boundary**:
+
+### bootstrap/core/ (Universal — ALL distros)
+- **Agnostic scripts** that run on every Linux distro (Arch, Alpine, Ubuntu, Debian, etc.)
+- **Examples**: `termuxvoid-shim.sh`, `extractFilesystem.sh`, `addNonRootUser.sh`, busybox, etc.
+- **Shared across**: Every deployed distro in `bootstrap/<distro>/input/support/`
+- **Single source of truth**: Only one copy allowed
+
+### bootstrap/<distro>/input/ (Distro-specific ONLY)
+- **Main build script**: `main.sh` — customizations unique to this distro
+- **Distro-specific support**: `sovereign-motd.sh`, SELinux shims, etc.
+- **DO NOT include**: Files from bootstrap/core/ (violates FSM boundary)
+- **Build process**: `build.sh` stages `bootstrap/core/*` → `/input/` automatically
+
+## CI/CD Validation
+
+The workflow `.github/workflows/hermes_fsm_enforce.yml` enforces this boundary:
+
+```bash
+BANNED_DISTRO_FILES="extractFilesystem.sh|addNonRootUser.sh|termuxvoid-shim.sh|busybox|tvrun"
+```
+
+**Violation Result**: PR is rejected immediately to save LLM compute.
+
 ## Build
 
 ```bash
