@@ -4,6 +4,9 @@
 #
 # Runs INSIDE a noble container (see Dockerfile). Produces /output/rootfs.tar.gz
 # that, once extracted by the app's /support/common/extractFilesystem.sh, yields a
+# Runs INSIDE a noble container (see Dockerfile). Bootstraps the filesystem;
+# the Dockerfile's later layers package it into /output/rootfs.tar.gz. Once
+# extracted by the app's /support/common/extractFilesystem.sh, it yields a
 # complete chroot whose /support tree matches exactly what tech.ula expects:
 #   /support/common/extractFilesystem.sh
 #   /support/common/compressFilesystem.sh
@@ -27,12 +30,42 @@ echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 cat > /etc/apt/sources.list.d/ubuntu.sources <<'EOF'
 Types: deb
 URIs: http://archive.ubuntu.com/ubuntu/
+# NOTE: inside `docker build`, /etc/hosts and /etc/resolv.conf are read-only
+# bind mounts managed by Docker — writing them fails the build. Docker's own
+# copies already provide working DNS during the build. Write our runtime
+# versions to staging paths; the app's proot environment uses these, and the
+# bind-mounted originals are excluded from the packaged rootfs anyway.
+echo "127.0.0.1 localhost" > /etc/hosts.sovereign || true
+{ echo "nameserver 8.8.8.8"; echo "nameserver 1.1.1.1"; } > /etc/resolv.conf.sovereign || true
+# Best-effort for real (non-docker) chroot bootstraps where these ARE writable:
+echo "127.0.0.1 localhost" > /etc/hosts 2>/dev/null || true
+{ echo "nameserver 8.8.8.8"; echo "nameserver 1.1.1.1"; } > /etc/resolv.conf 2>/dev/null || true
+
+# --- modern sources: Ubuntu 24.04 (Noble), deb822 format ---
+# archive.ubuntu.com only serves amd64/i386; arm64 + armhf packages live on
+# ports.ubuntu.com. Pick the mirror by the arch we're actually building, or
+# apt dies with "index files failed to download" on ARM builds.
+DPKG_ARCH="$(dpkg --print-architecture)"
+case "$DPKG_ARCH" in
+  amd64|i386)
+    MIRROR="http://archive.ubuntu.com/ubuntu/"
+    SECURITY="http://security.ubuntu.com/ubuntu/"
+    ;;
+  *)
+    MIRROR="http://ports.ubuntu.com/ubuntu-ports/"
+    SECURITY="http://ports.ubuntu.com/ubuntu-ports/"
+    ;;
+esac
+cat > /etc/apt/sources.list.d/ubuntu.sources <<EOF
+Types: deb
+URIs: $MIRROR
 Suites: noble noble-updates noble-backports
 Components: main restricted universe multiverse
 Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 
 Types: deb
 URIs: http://security.ubuntu.com/ubuntu/
+URIs: $SECURITY
 Suites: noble-security
 Components: main restricted universe multiverse
 Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
@@ -133,3 +166,11 @@ cp /bin/busybox /output/busybox
 gcc -shared -fpic /input/disableselinux.c -o /output/libdisableselinux.so
 
 echo "rootfs build complete: $(du -h /output/rootfs.tar.gz | cut -f1)"
+# --- packaging is handled by the Dockerfile, NOT here ---
+# The Dockerfile's later layers tar the whole image filesystem into
+# /output/rootfs.tar.gz, compile libdisableselinux.so, and export busybox
+# via the scratch 'rootfs' stage. Doing it here too caused a broken-pipe
+# tar failure (/output does not exist in this layer) and would have doubled
+# the work. This script's job ends with a fully bootstrapped filesystem.
+
+echo "noble bootstrap complete (packaging deferred to Dockerfile)"
