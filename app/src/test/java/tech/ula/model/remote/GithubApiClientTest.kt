@@ -35,6 +35,8 @@ class GithubApiClientTest {
     private lateinit var githubApiClient: GithubApiClient
 
     private val testRepo = "repo"
+    private val testReleaseToUse = "latest"
+    private val testEndpoint = "/repos/spiralgang/UserLAnd-Assets-$testRepo/releases/$testReleaseToUse"
     private val testReleaseToUse = "tags/$testRepo"
     private val testEndpoint = "/repos/spiralgang/sovereign-ula/releases/$testReleaseToUse"
 

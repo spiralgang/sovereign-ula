@@ -2,6 +2,8 @@ name: AI Agent PR Review
 
 # SEPARATE gitapp-type LLM review runner.
 # Reviews PR diffs via the Pull Request Review API (inline `suggestion` blocks
+# mapped to real diff lines — like an integrated review app). Does NOT build or
+# deploy anything (see distro-deploy-listener.yml for the build/deploy trigger).
 # mapped to real diff lines) AND - agentically - applies real fixes by
 # committing them back to the PR branch.
 #
@@ -21,6 +23,8 @@ on:
         description: "PR number to review"
         required: true
 
+# Cancel any in-progress run for the same PR/ref so re-pushes don't pile up
+# a dozen reviews. This is what stops the trigger-loop spam.
 # Cancel any in-progress run for the same PR/ref so re-pushes don't pile up.
 concurrency:
   group: ai-agent-review-${{ github.event.pull_request.number || github.event.inputs.pr_number || github.ref }}
@@ -29,6 +33,7 @@ concurrency:
 permissions:
   pull-requests: write
   issues: write
+  contents: read
   contents: write
 
 jobs:
@@ -36,6 +41,10 @@ jobs:
     if: github.event.pull_request.draft == false || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          # We need the merge-base diff, not a shallow clone, for accurate lines.
+          fetch-depth: 0
       - name: Resolve PR head ref
         id: pr
         env:
@@ -57,6 +66,7 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Run AI review agent
       - name: "Run AI review agent (agentic: reviews + auto-fixes)"
         id: review
         env:
@@ -67,6 +77,7 @@ jobs:
           VIBE_API_KEY: ${{ secrets.VIBE_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
+        run: python3 .github/scripts/ai_review.py
           AUTO_FIX: "true"
         run: |
           python3 .github/scripts/ai_review.py 2>&1 | tee /tmp/ai_review.log

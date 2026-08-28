@@ -2,6 +2,8 @@
 #
 # Sovereign ULA — Ubuntu 24.04 (Noble) rootfs bootstrap builder.
 #
+# Runs INSIDE a noble container (see Dockerfile). Produces /output/rootfs.tar.gz
+# that, once extracted by the app's /support/common/extractFilesystem.sh, yields a
 # Runs INSIDE a noble container (see Dockerfile). Bootstraps the filesystem;
 # the Dockerfile's later layers package it into /output/rootfs.tar.gz. Once
 # extracted by the app's /support/common/extractFilesystem.sh, it yields a
@@ -20,6 +22,14 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 # --- base networking for the chroot ---
+echo "127.0.0.1 localhost" > /etc/hosts
+echo "nameserver 8.8.8.8"  > /etc/resolv.conf
+echo "nameserver 1.1.1.1" >> /etc/resolv.conf
+
+# --- modern sources: Ubuntu 24.04 (Noble), deb822 format ---
+cat > /etc/apt/sources.list.d/ubuntu.sources <<'EOF'
+Types: deb
+URIs: http://archive.ubuntu.com/ubuntu/
 # NOTE: inside `docker build`, /etc/hosts and /etc/resolv.conf are read-only
 # bind mounts managed by Docker — writing them fails the build. Docker's own
 # copies already provide working DNS during the build. Write our runtime
@@ -54,6 +64,7 @@ Components: main restricted universe multiverse
 Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 
 Types: deb
+URIs: http://security.ubuntu.com/ubuntu/
 URIs: $SECURITY
 Suites: noble-security
 Components: main restricted universe multiverse
@@ -141,6 +152,20 @@ install -Dm644 /input/support/userland_profile.sh      /support/userland_profile
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 
+# --- tar the rootfs (exclude virtual fs + build artifacts) ---
+tar -czvf /output/rootfs.tar.gz \
+    --exclude sys --exclude dev --exclude proc \
+    --exclude mnt --exclude etc/mtab \
+    --exclude output --exclude input --exclude .dockerenv \
+    /
+
+# --- static busybox + selinux-disable shim for early extraction ---
+apt-get update
+apt-get -y install busybox-static build-essential
+cp /bin/busybox /output/busybox
+gcc -shared -fpic /input/disableselinux.c -o /output/libdisableselinux.so
+
+echo "rootfs build complete: $(du -h /output/rootfs.tar.gz | cut -f1)"
 # --- packaging is handled by the Dockerfile, NOT here ---
 # The Dockerfile's later layers tar the whole image filesystem into
 # /output/rootfs.tar.gz, compile libdisableselinux.so, and export busybox

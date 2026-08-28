@@ -27,6 +27,10 @@ class GithubApiClient(
     private val client = OkHttpClient()
     private val latestResults: HashMap<String, ReleasesResponse?> = hashMapOf()
 
+    // All asset repos use the "latest" release tag. Kept as a single-point
+    // tunable in case a distro ever needs a pinned tag.
+    private fun getReleaseToUseForRepo(repo: String): String {
+        return "latest"
     // Distro assets are published by distro-deploy-listener.yml as releases
     // TAGGED with the distro name (ubuntu | debian | arch), NOT as "latest".
     // "latest" is whatever release was created most recently — which is the
@@ -69,6 +73,7 @@ class GithubApiClient(
     private suspend fun queryLatestRelease(repo: String): ReleasesResponse = withContext(Dispatchers.IO) {
         val releaseToUse = getReleaseToUseForRepo(repo)
         val base = urlProvider.getBaseUrl()
+        val url = base + "repos/spiralgang/UserLAnd-Assets-$repo/releases/$releaseToUse"
         val url = base + "repos/spiralgang/sovereign-ula/releases/$releaseToUse"
         val moshi = Moshi.Builder().build()
         val adapter = moshi.adapter(ReleasesResponse::class.java)
