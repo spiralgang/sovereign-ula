@@ -2,6 +2,9 @@ name: AI Agent PR Review
 
 # SEPARATE gitapp-type LLM review runner.
 # Reviews PR diffs via the Pull Request Review API (inline `suggestion` blocks
+# mapped to real diff lines) AND - agentically - applies real fixes by
+# committing them back to the PR branch. Does NOT build or deploy anything
+# (see distro-deploy-listener.yml / build.yml for those).
 # mapped to real diff lines — like an integrated review app). Does NOT build or
 # deploy anything (see distro-deploy-listener.yml for the build/deploy trigger).
 # mapped to real diff lines) AND - agentically - applies real fixes by
@@ -41,9 +44,19 @@ jobs:
     if: github.event.pull_request.draft == false || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve PR head ref
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+        run: |
+          REF=$(gh pr view "$PR_NUMBER" --json headRefName -q .headRefName -R "${{ github.repository }}")
+          echo "head_ref=$REF" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
         with:
-          # We need the merge-base diff, not a shallow clone, for accurate lines.
+          # Check out the PR's OWN branch so we can commit fixes back to it.
+          ref: ${{ steps.pr.outputs.head_ref }}
           fetch-depth: 0
       - name: Resolve PR head ref
         id: pr
@@ -66,6 +79,7 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: "Run AI review agent (agentic: reviews + auto-fixes)"
       - name: Run AI review agent
       - name: "Run AI review agent (agentic: reviews + auto-fixes)"
         id: review
@@ -77,6 +91,7 @@ jobs:
           VIBE_API_KEY: ${{ secrets.VIBE_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
+          AUTO_FIX: "true"
         run: python3 .github/scripts/ai_review.py
           AUTO_FIX: "true"
         run: |
