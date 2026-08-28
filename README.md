@@ -2,35 +2,51 @@
 
 ![SOVEREIGN-ULA](images/sov_hero.jpeg)
 
-**SOVEREIGN-ULA** is a rebasing of UserLAnd (`tech.ula`) Linux-in-a-box shell enviroment,
-packaged as a **separate unique distinctly reimagined apk** under our own name, icon, and package
+**SOVEREIGN-ULA** is a rebasing of the UserLAnd (`tech.ula`) Linux-in-a-box shell environment,
+packaged as a **separate, unique, and distinctly reimagined APK** under our own name, icon, and package
 (`dev.soveriegn.ula`). The UserLAnd shell runtime concept is intact (MainActivity,
 ServerService, UlaDocProvider, Termux activity/service) — this just installs and runs
-on its own settings, theme, process, evolved concept && updated defined bootstrap packages-distinct from stock UserLAnd (This is essentially what Termux is of UserLAnd what Sovereign-Ula is of UserLAnd— *rebased && reimagined*)
+on its own settings, theme, process, evolved concept, and updated bootstrap packages, distinct from stock UserLAnd (this is essentially to UserLAnd what Termux is to Android — *rebased and reimagined*).
 
 ## Unique features we add on top
 
-- **Sovereign settings screen** — enumerates the entire requested permission suite
+- **Sovereign settings screen** —
+  This enumerates the entire requested permission suite
   with deep links into Android's per-permission screens.
-- **Sovereign Edge Panel** — a Samsung-style swipe-out edge panel (a slim handle on
+- **Sovereign Edge Panel Services** —
+  A Samsung-style swipe-out edge panel (a slim handle on
   the right screen edge that expands into the full settings panel) with buttons to
   open settings, grant all permissions, manage all-files access, overlay permission,
   accessibility, and Downloads.
-- **No funding popups** — the stock UserLAnd contribution/donation prompt is removed.
-- **In-app billing disabled** — no billing client is initialised.
-- **Mandatory signing certificate** — the app aborts unless signed by our release cert.
-- **Arch Linux** as the default / auto-bootstrap distribution.
-- **Aarch64 Compatible Translator** Updated && evolved packages
-- **A.G.I Prepped** A.I services prepped on bootstrap
-- **Settings Walk-Thru** MOTD HEADER WALK-THRU OF SETTINGS AND HOW TO ACCESS THEN
-- **DEVICE IMPORT-EXPORT** IMPORT-EXPORT DEVICE FILES
-- **ACCESSIBILTY SUITE PERMISSIONS** ANDROID PERMISSIONS ACCESSIBILITY PERMISSIONS
-- **SHELL EVOLUTION && HARDENING** EVOLVING && HARDENING EXISTING SHELL && ENVIROMENT 
-- **PRESET DEV ENVIRONMENT CONFIGS** READY-TO-USE PRESET ENVIRONMENT FOR DEVELOPER CONFIGURATIONS
-  ##*PLUS MUCH, MUCH MORE*
+- **No funding popups** —
+  The stock UserLAnd contribution/donation prompt removed.
+- **In-app billing disabled** —
+  Absolutely no billing client is initialised/no premium only features.
+- **Mandatory signing certificate** —
+  The app aborts unless signed by our privileged release certificates.
+- **Arch Linux** —
+  As the default / auto-bootstrap distribution chroot/proot environment compiler
+- **Aarch64 Glibc Compatible Translator** —
+  Updated and evolved packages ensuring the Linux-GNU environment is fully compatible with Linux-GLIBC.
+- **A.G.I. Prepped** —
+  AI services prepped on bootstrap.
+- **Settings Walkthrough** —
+  MOTD header walk-through of settings and how to access them.
+- **Device Import/Export** —
+  Import and export device files.
+- **Accessibility Suite Permissions** —
+  Android accessibility permissions integration.
+- **Shell Evolution & Hardening** —
+  Evolving and hardening the existing shell and environment.
+- **Preset Dev Environment Configs** —
+  Ready-to-use preset environments for developer configurations.
+
+***Plus much, much more!***
+ 
 ---
 ---
 ---
+
 ## How it's built
 
 Fork of UserLAnd; we change only `applicationId` to `dev.soveriegn.ula` and add the

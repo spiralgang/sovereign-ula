@@ -107,7 +107,7 @@ class FileTransferActivity : AppCompatActivity() {
     // ---------------------------------------------------------------- EXPORT
 
     private fun chooseExportSource() {
-        val files = bridgeDir.listFiles()?.filter { it.isFile }?.sortedBy { it.name.lowercase() }
+        val files = bridgeDir.listFiles()?.filter { it.isFile }?.sortedBy { it.name.toLowerCase() }
         if (files.isNullOrEmpty()) {
             toast(getString(R.string.sov_transfer_export_empty))
             finish()

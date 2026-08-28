@@ -31,13 +31,24 @@ class GithubApiClient(
     // tunable in case a distro ever needs a pinned tag.
     private fun getReleaseToUseForRepo(repo: String): String {
         return "latest"
+    // Distro assets are published by distro-deploy-listener.yml as releases
+    // TAGGED with the distro name (ubuntu | debian | arch), NOT as "latest".
+    // "latest" is whatever release was created most recently — which is the
+    // signed APK release from build.yml, containing no distro assets. Using
+    // "latest" made every asset lookup fail (NPE crash on session start and a
+    // bogus "network required" error even with connectivity).
+    private fun getReleaseToUseForRepo(repo: String): String {
+        return "tags/$repo"
     }
 
     @Throws(IOException::class)
     suspend fun getAssetsListDownloadUrl(repo: String): String = withContext(Dispatchers.IO) {
         val result = latestResults[repo] ?: queryLatestRelease(repo)
+        val assetName = "${ulaFiles.getArchType()}-assets.txt"
 
-        return@withContext result.assets.find { it.name == "${ulaFiles.getArchType()}-assets.txt" }!!.downloadUrl
+        val asset = result.assets.find { it.name == assetName }
+                ?: throw IOException("Release '${result.tag}' has no asset '$assetName'")
+        return@withContext asset.downloadUrl
     }
 
     @Throws(IOException::class)
@@ -52,7 +63,9 @@ class GithubApiClient(
         val result = latestResults[repo] ?: queryLatestRelease(repo)
         val assetName = "${ulaFiles.getArchType()}-$assetType"
 
-        return@withContext result.assets.find { it.name == assetName }!!.downloadUrl
+        val asset = result.assets.find { it.name == assetName }
+                ?: throw IOException("Release '${result.tag}' has no asset '$assetName'")
+        return@withContext asset.downloadUrl
     }
 
     // Query latest release data and memoize results.
@@ -61,6 +74,7 @@ class GithubApiClient(
         val releaseToUse = getReleaseToUseForRepo(repo)
         val base = urlProvider.getBaseUrl()
         val url = base + "repos/spiralgang/UserLAnd-Assets-$repo/releases/$releaseToUse"
+        val url = base + "repos/spiralgang/sovereign-ula/releases/$releaseToUse"
         val moshi = Moshi.Builder().build()
         val adapter = moshi.adapter(ReleasesResponse::class.java)
         val request = Request.Builder()

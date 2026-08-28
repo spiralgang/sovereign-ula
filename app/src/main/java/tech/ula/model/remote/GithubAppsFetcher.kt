@@ -20,6 +20,7 @@ class GithubAppsFetcher(
 
     private val branch = "master" // Base off different support branches for testing.
     private val baseUrl = "https://github.com/spiralgang/UserLAnd-Assets-Support/raw/$branch/apps"
+    private val baseUrl = "https://github.com/spiralgang/sovereign-ula/raw/$branch/apps"
 
     @Throws(IOException::class)
     suspend fun fetchAppsList(): List<App> = withContext(Dispatchers.IO) {
