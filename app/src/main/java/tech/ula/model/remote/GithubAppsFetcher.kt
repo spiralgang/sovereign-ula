@@ -19,6 +19,7 @@ class GithubAppsFetcher(
     private operator fun <T> List<T>.component7() = get(6)
 
     private val branch = "master" // Base off different support branches for testing.
+    private val baseUrl = "https://github.com/spiralgang/UserLAnd-Assets-Support/raw/$branch/apps"
     private val baseUrl = "https://github.com/spiralgang/sovereign-ula/raw/$branch/apps"
 
     @Throws(IOException::class)
