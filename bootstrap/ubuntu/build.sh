@@ -2,7 +2,8 @@
 # Build the Ubuntu 24.04 (Noble) rootfs for Sovereign ULA.
 # Multi-arch via docker buildx + QEMU. Produces release/<arch>-rootfs.tar.gz
 # plus release/<arch>-assets.tar.gz (busybox + selinux shim) — matching the
-# UserLAnd-Assets release layout the app already consumes.
+# Layout matches what distro-deploy-listener.yml publishes to sovereign-ula
+# releases (tag = distro name) and what the app consumes.
 set -euo pipefail
 ARCH="${1:-arm64}"
 PLATFORM="linux/arm64"
@@ -33,17 +34,16 @@ docker buildx build \
   --build-arg QEMU_FILE="$QEMU" \
   --target rootfs \
   -o type=local,dest=output \
-  -f Dockerfile .
+  -f Dockerfile ..
 
 # Package the universal support assets (busybox + selinux shim) the way the
 # app expects: <arch>-assets.txt + <arch>-assets.tar.gz
 mkdir -p release/assets
 cp output/busybox release/assets/busybox
 cp output/libdisableselinux.so release/assets/libdisableselinux.so
-cp -r input/support release/assets/support
+cp -r ../core/support release/assets/support
 tar -czvf "release/${ARCH}-assets.tar.gz" -C release/assets .
 : > "release/${ARCH}-assets.txt"
-for f in $(ls release/assets/); do
 # Verify artifacts exist
 if [ ! -f output/rootfs.tar.gz ]; then
   echo "ERROR: output/rootfs.tar.gz missing" >&2
@@ -70,7 +70,7 @@ fi
 mkdir -p release/assets
 cp output/busybox release/assets/busybox 2>/dev/null || cp /busybox release/assets/busybox 2>/dev/null || true
 cp output/libdisableselinux.so release/assets/libdisableselinux.so 2>/dev/null || cp /libdisableselinux.so release/assets/libdisableselinux.so 2>/dev/null || true
-cp -r input/support release/assets 2>/dev/null || true
+cp -r ../core/support release/assets 2>/dev/null || true
 tar -czvf "release/${ARCH}-assets.tar.gz" -C release/assets .
 : > "release/${ARCH}-assets.txt"
 for f in $(ls release/assets/ 2>/dev/null); do

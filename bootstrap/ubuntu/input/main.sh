@@ -120,33 +120,38 @@ apt-get install -y --no-install-recommends nvidia-utils-535 libcuda1-535 libnvid
 apt-get install -y --no-install-recommends pulseaudio
 
 # --- glibc / termuxvoid translation layer (universal support add-on) ---
-install -Dm755 /input/termuxvoid-shim.sh /support/termuxvoid-shim.sh
+install -Dm755 /core/termuxvoid-shim.sh /support/termuxvoid-shim.sh
 /support/termuxvoid-shim.sh install
 
 # --- ship MOTD + support scripts into the rootfs /support tree ---
-install -Dm755 /input/sovereign-motd.sh /support/sovereign-motd.sh
+install -Dm755 /core/sovereign-motd.sh /support/sovereign-motd.sh
 
 # --- device-anchored SSH: a resilient dropbear instance bound to the DEVICE
 #     IMEI so the env can ALWAYS be reached even if the user-facing dropbear
 #     config (startSSHServer.sh) gets corrupted. Host keys live in /support and
 #     the session is cryptographically tied to the physical phone, guaranteeing
 #     no lockout / no disallow. ---
-install -Dm755 /input/support/ssh-anchor.sh /support/ssh-anchor.sh
+install -Dm755 /core/support/ssh-anchor.sh /support/ssh-anchor.sh
 /support/ssh-anchor.sh install || true
 
 # --- install the universal support layer expected by tech.ula ---
-install -Dm755 /input/support/common/extractFilesystem.sh /support/common/extractFilesystem.sh
-install -Dm755 /input/support/common/compressFilesystem.sh /support/common/compressFilesystem.sh
-install -Dm755 /input/support/execInProot.sh           /support/execInProot.sh
-install -Dm755 /input/support/startSSHServer.sh        /support/startSSHServer.sh
+install -Dm755 /core/support/common/extractFilesystem.sh /support/common/extractFilesystem.sh
+install -Dm755 /core/support/common/compressFilesystem.sh /support/common/compressFilesystem.sh
+install -Dm755 /core/support/execInProot.sh           /support/execInProot.sh
+install -Dm755 /core/support/startSSHServer.sh        /support/startSSHServer.sh
 # Preserve the ORIGINAL (source-of-truth) dropbear config as a fallback reference.
-install -Dm755 /input/support/original/startSSHServer.sh /support/original/startSSHServer.sh
-install -Dm755 /input/support/startVNCServer.sh        /support/startVNCServer.sh
-install -Dm755 /input/support/startVNCServerStep2.sh   /support/startVNCServerStep2.sh
-install -Dm755 /input/support/startXSDLServer.sh       /support/startXSDLServer.sh
-install -Dm755 /input/support/addNonRootUser.sh        /support/addNonRootUser.sh
-install -Dm644 /input/support/ld.so.preload            /support/ld.so.preload
-install -Dm644 /input/support/userland_profile.sh      /support/userland_profile.sh
+install -Dm755 /core/support/original/startSSHServer.sh /support/original/startSSHServer.sh
+install -Dm755 /core/support/startVNCServer.sh        /support/startVNCServer.sh
+install -Dm755 /core/support/startVNCServerStep2.sh   /support/startVNCServerStep2.sh
+install -Dm755 /core/support/startXSDLServer.sh       /support/startXSDLServer.sh
+install -Dm755 /core/support/addNonRootUser.sh        /support/addNonRootUser.sh
+install -Dm644 /core/support/ld.so.preload            /support/ld.so.preload
+install -Dm644 /core/support/userland_profile.sh      /support/userland_profile.sh
+
+# --- agentic-coder layer (universal, in bootstrap/core/): Gemini CLI +
+#     google-genai SDK + MCP plugin scaffolding baked into every rootfs.
+#     Skip with SOVEREIGN_SKIP_AGENT_TOOLS=1 for a lean build.
+bash /core/agent-tooling/install-agent-tools.sh
 
 # --- clean apt caches so the tarball stays small ---
 apt-get clean

@@ -10,11 +10,14 @@ The tech.ula runtime (which we forked) builds a **universal chroot base env**
 rootfs** on top to operate. So:
 
 - `input/main.sh` builds the **Ubuntu 24.04 (Noble)** rootfs filesystem.
-- `input/support/*` is the **universal support layer** (`/support/common/*`,
-  `execInProot.sh`, SSH/VNC servers, MOTD, glibc/termuxvoid shim) — identical
-  for every deployed distro.
+- The **universal support layer** lives in `bootstrap/core/` (FSM agnostic
+  core): `support/*` (`/support/common/*`, `execInProot.sh`, SSH/VNC servers),
+  `sovereign-motd.sh`, `termuxvoid-shim.sh` — identical for every deployed
+  distro. The Dockerfile's build context is `bootstrap/`, so it copies both
+  `ubuntu/input/` and `core/` into the image (`/input` + `/core`).
 - `build.sh` packages `release/<arch>-rootfs.tar.gz` + `release/<arch>-assets.tar.gz`
-  in the layout the app already pulls from `spiralgang/UserLAnd-Assets-Ubuntu`.
+  in the UserLAnd-Assets release layout; `distro-deploy-listener.yml` publishes those
+  tarballs to `sovereign-ula` releases tagged with the distro name, which the app pulls.
 
 ## Build
 
@@ -32,6 +35,6 @@ Requires Docker with `binfmt-support` + `qemu-user-static` for cross-arch.
 - Noble (24.04) instead of buster/jammy
 - `gh`, `git`, `python3`+pip, `node`/`npm`, `gcloud`, `cmake`/`make`/`gcc`,
   `aapt2`/`apktool`, `nvidia` client libs, `sqlite3`, `openssh-client`
-- `termuxvoid-shim.sh` — translation layer so aarch64 glibc packages (termuxvoid)
-  run natively inside the env
+- `termuxvoid-shim.sh` (from `bootstrap/core/`) — translation layer so aarch64
+  glibc packages (termuxvoid) run natively inside the env
 - `sovereign-motd.sh` — first-boot walk-through banner (sov_hero background)

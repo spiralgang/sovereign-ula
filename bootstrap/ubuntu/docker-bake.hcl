@@ -2,8 +2,8 @@
 variable "ARCH" { default = "arm64" }
 
 target "rootfs" {
-  context = "."
-  dockerfile = "Dockerfile"
+  context = ".."
+  dockerfile = "ubuntu/Dockerfile"
   platforms = ["linux/arm64", "linux/arm/v7", "linux/amd64", "linux/386"]
   args = {
     IMAGE_ARCH = "arm64v8"
