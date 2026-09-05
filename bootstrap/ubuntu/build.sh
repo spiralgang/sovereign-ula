@@ -19,6 +19,14 @@ esac
 mkdir -p release output input
 cp /usr/bin/$QEMU input/$QEMU 2>/dev/null || true
 
+# --- Stage universal support layer from bootstrap/core/ into /input/ ---
+# The FSM architecture requires agnostic scripts like termuxvoid-shim.sh to
+# live only in bootstrap/core/ (universal). However, main.sh expects them at
+# /input/ during Docker build. Copy them here before the build runs.
+echo "Staging universal support from bootstrap/core/..."
+cp ../core/termuxvoid-shim.sh input/termuxvoid-shim.sh 2>/dev/null || \
+  { echo "WARNING: termuxvoid-shim.sh not found in bootstrap/core/" >&2; }
+
 echo "Ensuring buildx builder exists..."
 if ! docker buildx ls | grep -q "agent-builder"; then
   docker buildx create --use --name agent-builder || true
