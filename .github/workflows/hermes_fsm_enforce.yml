@@ -44,8 +44,10 @@ jobs:
               VIOLATIONS=$((VIOLATIONS + 1))
             fi
             
-            # Boundary Breach 2: Agnostic support binaries/scripts in distro target
-            for file in $(find "$target" -type f -maxdepth 2 2>/dev/null); do
+            # Boundary Breach 2: Agnostic support binaries/scripts in distro target.
+            # Scan recursively: a depth-limited scan (-maxdepth 2) silently missed
+            # banned files nested like input/support/addNonRootUser.sh (depth 3).
+            for file in $(find "$target" -type f 2>/dev/null); do
               if echo "$file" | grep -Eq "$BANNED_DISTRO_FILES"; then
                 echo "::error file=$file,line=1,title=FSM Logic Violation::Agnostic script '$(basename "$file")' found in '$DISTRO'. Must reside in 'bootstrap/core/'."
                 VIOLATIONS=$((VIOLATIONS + 1))

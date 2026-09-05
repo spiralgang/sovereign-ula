@@ -7,3 +7,7 @@ debs/
 *.deb
 apktool.jar
 __pycache__/
+
+# local AI session dirs / decompile scratch (keep out of git)
+.claude/
+decoded/
