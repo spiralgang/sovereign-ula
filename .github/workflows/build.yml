@@ -105,7 +105,7 @@ jobs:
             - Sovereign settings screen + floating edge-panel overlay
             - In-app billing disabled
             - Mandatory signing-certificate enforcement
-            - Default distribution: Aarch64 Linux (auto-bootstrap latest)
+            - Default distribution: Ubuntu 24.04 (Noble) (auto-bootstrap latest)
           files: sovereign-ula.apk
           # rename the published asset to sovereign-ula.apk
           asset_name: sovereign-ula.apk

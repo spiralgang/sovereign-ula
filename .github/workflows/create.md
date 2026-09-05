@@ -578,7 +578,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libc6-dev \
     && apt-get clean
 
-COPY input/ /input/
+# FSM layout: universal support layer lives in bootstrap/core/ (agnostic core);
+# distro dirs only carry distro config. Build context is the bootstrap/ root.
+COPY ubuntu/input/ /input/
+COPY core/ /core/
 
 RUN gcc -shared -fPIC -o /libdisableselinux.so /input/disableselinux.c
 
@@ -639,7 +642,7 @@ docker buildx build \
   --build-arg QEMU_FILE="$QEMU" \
   --target rootfs \
   -o type=local,dest=output \
-  -f Dockerfile .
+  -f Dockerfile ..
 
 # Verify artifacts exist
 if [ ! -f output/rootfs.tar.gz ]; then
@@ -667,7 +670,7 @@ fi
 mkdir -p release/assets
 cp output/busybox release/assets/busybox 2>/dev/null || cp /busybox release/assets/busybox 2>/dev/null || true
 cp output/libdisableselinux.so release/assets/libdisableselinux.so 2>/dev/null || cp /libdisableselinux.so release/assets/libdisableselinux.so 2>/dev/null || true
-cp -r input/support release/assets 2>/dev/null || true
+cp -r ../core/support release/assets 2>/dev/null || true
 tar -czvf "release/${ARCH}-assets.tar.gz" -C release/assets .
 : > "release/${ARCH}-assets.txt"
 for f in $(ls release/assets/ 2>/dev/null); do
