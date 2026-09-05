@@ -184,12 +184,8 @@ def parse_diff(diff_text):
         if h:
             new_line = int(h.group(3))
             continue
-        if raw.startswith("+++") or raw.startswith("---") or raw.startswith("diff "):
-            # '--- a/...' and '+++ b/...' (or /dev/null) — only the b/ one sets path;
-            # ignore /dev/null (deletion-only) so we don't key on None.
-            if raw.startswith("+++") and "/dev/null" in raw:
-                path = None
         if raw.startswith("+++") and "/dev/null" in raw:
+            # deletion-only file: there are no new-file lines to comment on
             path = None
             continue
         if path is None:
@@ -198,13 +194,8 @@ def parse_diff(diff_text):
             files.setdefault(path, []).append((new_line, raw[1:]))
             new_line += 1
         elif raw.startswith("-"):
+            # removed line does not exist in the new file; skip it
             pass
-        else:
-            files.setdefault(path, []).append((new_line, raw[1:]))
-            new_line += 1
-        elif raw.startswith("-"):
-            # removed line, ignore for "new file line" mapping
-            continue
         else:
             files.setdefault(path, []).append((new_line, raw[1:]))
             new_line += 1
@@ -236,23 +227,6 @@ SCHEMA_HINT = (
 
 def call_llm(diff_text, pr_title, pr_body):
     system = (
-        "You are Sovereign-ULA's automated code-review agent for an Android app "
-        "(a UserLAnd fork, applicationId dev.soveriegn.ula) and its Linux distro "
-        "bootstrap shell scripts. You produce INLINE, commit-ready fixes. "
-        "You output strict JSON of per-line suggestions using GitHub ```suggestion syntax. "
-        "You are precise: real line numbers, real file paths, real fixes. "
-        "No hallucinated boilerplate. No generic security lectures. "
-        "You ALWAYS return findings (3-6); you never return an empty list."
-    )
-    user = (
-        f"PR: {pr_title}\n\nDescription:\n{pr_body or '(none)'}\n\n"
-        f"DIFF:\n{diff_text[:16000]}\n\n{SCHEMA_HINT}"
-    )
-    '```suggestion\n<REPLACEMENT CODE FOR THAT ONE LINE ONLY>\n```\n'
-)
-
-def call_llm(diff_text, pr_title, pr_body):
-    system = (
         "You are Sovereign-ULA's automated code-review agent. Produce inline, commit-ready fixes. "
         "Output strict JSON of per-line suggestions using GitHub ```suggestion syntax."
     )
@@ -268,11 +242,6 @@ def call_llm(diff_text, pr_title, pr_body):
         "temperature": 0.1,
     }
     req = urllib.request.Request(LLM_BASE_URL, method="POST")
-    req.add_header("Authorization", f"Bearer {LLM_KEY}")
-    req.add_header("Content-Type", "application/json")
-    req.add_header("User-Agent", "sovereign-ai-reviewer")
-    last_err = None
-    for attempt in range(2):  # one retry on transient timeout
     if LLM_KEY:
         req.add_header("Authorization", f"Bearer {LLM_KEY}")
     req.add_header("Content-Type", "application/json")
@@ -325,47 +294,6 @@ def apply_fix(path, line, replacement_lines):
 # --------------------------------------------------------------------------
 # Main
 # --------------------------------------------------------------------------
-def main():
-    if not LLM_KEY:
-        github(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", "POST",
-               {"body": "## AI Agent Review\n\n⚠️ No `NVIDIA_API_KEY`/`VIBE_API_KEY` secret; AI review could not run."})
-        print("No LLM key; posted notice.")
-        return
-
-        except OSError as e:
-            last_err = e
-            print(f"LLM call failed: {e}; retrying...")
-            time.sleep(1)
-    else:
-        raise last_err
-    # Accept different response shapes: aim to extract content
-    content = ""
-    if isinstance(resp, dict):
-        # OpenAI-ish
-        choices = resp.get("choices")
-        if choices:
-            content = choices[0].get("message", {}).get("content", "")
-        else:
-            content = json.dumps(resp)
-    else:
-        content = str(resp)
-    content = content.strip()
-    if content.startswith("```"):
-        content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content, flags=re.S)
-    try:
-        data = json.loads(content)
-    except Exception:
-        # as last resort try to parse the whole response as JSON
-        data = resp
-    findings = None
-    if isinstance(data, dict) and "findings" in data:
-        findings = data["findings"]
-    elif isinstance(data, list):
-        findings = data
-    else:
-        findings = []
-    return findings
-
 def extract_replacement(comment):
     m = re.search(r"```suggestion\n(.*?)\n```", comment, flags=re.S)
     if not m:
@@ -409,69 +337,11 @@ def main():
     except Exception as e:
         github(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", "POST",
                {"body": f"## AI Agent Review\n\nReview agent error: `{e}`. No review posted."})
-    except Exception as e:
-        github(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", "POST",
-               {"body": f"## AI Agent Review\n\nReview agent error: `{e}`. No review posted."})
         print(f"LLM error: {e}")
         return
 
     if not isinstance(findings, list):
         findings = []
-
-    applied = []
-    skipped = []
-    for f in findings:
-        path = f.get("path")
-        line = int(f.get("line", 0))
-        sev = f.get("severity", "suggestion")
-        body = (f.get("comment") or "").strip()
-        if not path or line <= 0 or not body:
-            continue
-        repl = extract_replacement(body)
-        if not repl:
-            skipped.append(f"{path}:{line} (no suggestion block)")
-            continue
-        if AUTO_FIX and sev in ("critical", "warning"):
-            ok, msg = apply_fix(path, line, repl)
-            if ok:
-                applied.append(f"{path}:{line} [{sev}]")
-            else:
-                skipped.append(f"{path}:{line} ({msg})")
-        else:
-            skipped.append(f"{path}:{line} [{sev}] comment-only")
-
-    summary_lines = [f"## 🤖 AI Agent Review (Sovereign-Ula)", f"_Model: `{LLM_MODEL}`_", ""]
-    if applied:
-        head_ref = pr["head"]["ref"]
-        try:
-            subprocess.run(["git", "config", "user.email", "agent@sovereign-ula"], check=True)
-            subprocess.run(["git", "config", "user.name", "sovereign-ai-reviewer"], check=True)
-            subprocess.run(["git", "add", "-A"], check=True)
-            subprocess.run(["git", "commit", "-m",
-                            "fix: apply AI review suggestions (auto)\n\n"
-                            "Agentic PR review: committed inline fixes from the LLM reviewer."],
-                           check=True)
-            subprocess.run(["git", "push", "origin", f"HEAD:{head_ref}"], check=True)
-            summary_lines.append(f"**Auto-fixed {len(applied)} issue(s)** (pushed to `{head_ref}`):")
-            for a in applied:
-                summary_lines.append(f"- ✅ {a}")
-        except subprocess.CalledProcessError as e:
-            summary_lines.append(f"⚠️ Applied {len(applied)} fix(es) locally but push failed: `{e}`.")
-            for a in applied:
-                summary_lines.append(f"- ✅ {a}")
-    if skipped:
-        summary_lines.append("")
-        summary_lines.append(f"Comment-only / skipped ({len(skipped)}):")
-        for s in skipped[:8]:
-            summary_lines.append(f"- ⏭️ {s}")
-    if not applied and not skipped:
-        summary_lines.append("No actionable inline issues found. Diff looks clean.")
-
-    summary_lines.append("")
-    summary_lines.append("*Automated agentic LLM review runner.*")
-    github(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", "POST", {"body": "\n".join(summary_lines)})
-    print(f"Posted summary. applied={len(applied)} skipped={len(skipped)}")
-
 
     applied = []
     skipped = []

@@ -1,0 +1,7 @@
+# Hermes autonomous runner — runtime dependencies.
+# requests is required; the google-* packages are optional backends the
+# runner degrades gracefully without.
+requests>=2.31.0
+google-genai>=0.4.0        # optional: Gemini free-tier LLM backend + streaming
+google-auth>=2.22.0
+google-api-python-client>=2.100.0   # optional: Google Drive report backup

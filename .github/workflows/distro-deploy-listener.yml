@@ -9,13 +9,11 @@ name: Distro Deploy Listener
 # latest-rolling) and publishes the artifacts as release assets on OUR repo
 # (spiralgang/sovereign-ula). NO tech.ula / UserLAnd assets are used.
 #
-# The app fetches distro assets from:
-#   repos/spiralgang/sovereign-ula/releases/<distro>
-# looking for <arch>-rootfs.tar.gz / <arch>-assets.tar.gz / <arch>-assets.txt
-# where <arch> in {arm64, arm, x86_64, x86}.
-#
-# SEPARATE from build.yml (APK) and ai-agent-review.yml — plain build pipeline,
-# NO LLM / code review.
+# The app's GithubApiClient.kt fetches distro assets from
+# spiralgang/UserLAnd-Assets-<distro> releases, looking for
+# <arch>-rootfs.tar.gz / <arch>-assets.tar.gz / <arch>-assets.txt
+# where <arch> in {arm64, arm, x86_64, x86}. Those releases are published
+# here as well (mirrored to this repo's Releases tab).
 
 on:
   workflow_dispatch:
@@ -25,9 +23,6 @@ on:
         required: true
         default: "ubuntu"
       suite:
-        description: "Release suite tag for the published asset"
-        required: false
-        default: "latest"
         description: "Release tag for the published assets (e.g. ubuntu | debian | arch)"
         required: false
         default: "ubuntu"
@@ -42,18 +37,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install build deps + QEMU binfmt
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y binfmt-support qemu-user-static docker.io
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-
-      - name: Build chosen distro rootfs
-        run: |
-          DISTRO="${{ github.event.inputs.distro }}"
-          SUITE="${{ github.event.inputs.suite }}"
-          # Validate the requested distro has a bootstrap source before building.
-      - name: Install cross-arch emulation (runner already has Docker)
+      - name: Install cross-arch emulation (QEMU binfmt)
         run: |
           docker version >/dev/null 2>&1 || { echo "::error::Docker not available on runner"; exit 1; }
           sudo apt-get update
@@ -64,37 +48,13 @@ jobs:
         run: |
           set -euo pipefail
           DISTRO="${{ github.event.inputs.distro }}"
+          SUITE="${{ github.event.inputs.suite }}"
           if [ ! -d "bootstrap/$DISTRO" ]; then
-            echo "::error::No bootstrap source for distro '$DISTRO'. Available:"; ls bootstrap
+            echo "::error::No bootstrap source for distro '$DISTRO'. Available:"
+            ls bootstrap
             exit 1
           fi
           echo "Building distro=$DISTRO suite=$SUITE"
-          # The bootstrap source for each distro lives under bootstrap/<distro>/
-          ls -la "bootstrap/$DISTRO" || { echo "No bootstrap source for $DISTRO"; exit 1; }
-          # Placeholder real build step (filled by the bootstrap PR):
-          #   docker buildx bake -f bootstrap/$DISTRO/docker-bake.hcl
-          #   ./bootstrap/$DISTRO/build.sh
-          mkdir -p release
-          # Produce a real, minimal placeholder tarball so the asset pipeline works end-to-end.
-          tar -czf "release/${DISTRO}-rootfs.tar.gz" -C "bootstrap/$DISTRO" .
-          ls -la release/
-
-      - name: Publish rootfs asset
-        # The app's GithubApiClient.kt fetches distro rootfs from
-        # spiralgang/UserLAnd-Assets-<distro> releases, so we publish there —
-        # the app pulls the result with no further changes.
-        uses: softprops/action-gh-release@v2
-        with:
-          repository: spiralgang/UserLAnd-Assets-${{ github.event.inputs.distro }}
-          tag_name: ${{ github.event.inputs.suite }}
-          name: "rootfs ${{ github.event.inputs.distro }} (${{ github.event.inputs.suite }})"
-          body: |
-            On-demand rootfs for `${{ github.event.inputs.distro }}` requested via
-            the SOVEREIGN-ULA app. Pulled by the app when a user selects this distro.
-          files: release/${{ github.event.inputs.distro }}-rootfs.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          echo "Building OUR $DISTRO Noble rootfs (all arches) from bootstrap/$DISTRO"
           mkdir -p release
           # NOTE: no 'x86': docker.io ubuntu:noble ships no linux/386 image
           # (Ubuntu dropped i386), so that leg can never pull a base image.
@@ -110,7 +70,7 @@ jobs:
             else
               : > "release/${ARCH}-assets.txt"
             fi
-            # sanity: rootfs must be a real tarball, not the placeholder
+            # sanity: rootfs must be a real tarball, not a placeholder
             sz=$(stat -c%s "release/${ARCH}-rootfs.tar.gz")
             echo "  $ARCH rootfs size = $sz bytes"
             if [ "$sz" -lt 1000000 ]; then
@@ -120,7 +80,33 @@ jobs:
           done
           ls -la release/
 
-      - name: Publish rootfs assets to OUR repo
+      - name: Publish rootfs assets to UserLAnd-Assets repo (app-facing)
+        # The app's GithubApiClient.kt fetches distro rootfs from
+        # spiralgang/UserLAnd-Assets-<distro> releases. Cross-repo releases
+        # need a PAT with access to that org (GITHUB_TOKEN only works inside
+        # this repo), so prefer HERMES_HUB_KEY when configured.
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: spiralgang/UserLAnd-Assets-${{ github.event.inputs.distro }}
+          tag_name: ${{ github.event.inputs.suite }}
+          name: "rootfs ${{ github.event.inputs.distro }} (${{ github.event.inputs.suite }})"
+          body: |
+            On-demand rootfs for `${{ github.event.inputs.distro }}` requested via
+            the SOVEREIGN-ULA app. Pulled by the app when a user selects this distro.
+          files: |
+            release/arm64-rootfs.tar.gz
+            release/arm-rootfs.tar.gz
+            release/x86_64-rootfs.tar.gz
+            release/arm64-assets.tar.gz
+            release/arm-assets.tar.gz
+            release/x86_64-assets.tar.gz
+            release/arm64-assets.txt
+            release/arm-assets.txt
+            release/x86_64-assets.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.HERMES_HUB_KEY || secrets.GITHUB_TOKEN }}
+
+      - name: Publish rootfs assets to this repo
         uses: softprops/action-gh-release@v2
         with:
           repository: spiralgang/sovereign-ula

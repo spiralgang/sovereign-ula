@@ -15,7 +15,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libc6-dev \
     && apt-get clean
 
-COPY input/ /input/
+# FSM layout: the universal support layer lives in bootstrap/core/ (agnostic
+# core) while distro dirs only carry distro config. Build context is bootstrap/.
+COPY ubuntu/input/ /input/
+COPY core/ /core/
 
 RUN gcc -shared -fPIC -o /libdisableselinux.so /input/disableselinux.c
 

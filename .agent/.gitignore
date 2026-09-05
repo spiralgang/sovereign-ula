@@ -1,0 +1,7 @@
+# Hermes runner — never commit regenerated/bulky artifacts.
+# Only state.json and history.jsonl are durable state that must be committed;
+# everything else is rebuilt every run (or backed up to Drive / Actions
+# artifacts instead of git history).
+__pycache__/
+knowledge.db
+logs/

@@ -90,8 +90,7 @@ def main():
         "to request external storage + Downloads access, disable billing/pay, require a signing cert, "
         "and enable/declare any permissions the app uses. Respond ONLY with valid JSON.\n\n"
         "APP MANIFEST:\n````xml\n" + manifest + "\n```\n\n"
-        "DECODED FILE TREE:\n```
-" + "\n".join(tree_items[:MAX_TREE_ENTRIES]) + "\n```"
+        "DECODED FILE TREE:\n```\n" + "\n".join(tree_items[:MAX_TREE_ENTRIES]) + "\n```"
     )
 
     contents = [

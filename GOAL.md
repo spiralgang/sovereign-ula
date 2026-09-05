@@ -16,7 +16,8 @@ built better and smarter than the 8-year-old UserLAnd bootstrap it descends from
 ## Success criteria
 1. Signed APK releases from `build.yml` to a GitHub Release.
 2. New filesystem auto-selects **Ubuntu 24.04 (Noble)** and is ready to autolaunch.
-3. Rootfs is pulled from `spiralgang/UserLAnd-Assets-Ubuntu` (our own org, not upstream).
+3. Rootfs is pulled from `sovereign-ula` releases tagged with the distro name (published by
+   `distro-deploy-listener.yml`; no external assets org needed at runtime).
 4. First-boot MOTD walk-through renders with `sov_hero` as the background; shows
    permissions deep-links, shared-storage mounts, pre-seeded packages, licensing/funding.
 5. `sov_hero.jpeg` is the single artwork across launcher + all thumbnails + MOTD.

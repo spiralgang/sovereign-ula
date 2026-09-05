@@ -1,0 +1,166 @@
+name: Hermes Agent Verifier Matrix
+
+# Real test-and-verify gate on every draft PR the Hermes autonomous runner
+# opens (heads: hermes-autonomous or hermes/*). Each matrix cell is one
+# independent verifier — the same static checks the agent runs internally,
+# re-run here by GitHub Actions so a PR can never sit with broken checks.
+#
+# The matrix is defined by the define-verifiers job output (fromJSON) — the
+# same pattern used to fan a job out from data, so adding a new check axis is
+# a one-line change in that job.
+#
+# Manual trigger (verify any branch):
+#   gh workflow run agent-verifier-matrix.yml -f pr_head=hermes-autonomous
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_head:
+        description: 'Branch to verify (manual runs only)'
+        required: false
+        default: hermes-autonomous
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hermes-verifier-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  define-verifiers:
+    runs-on: ubuntu-latest
+    outputs:
+      verifiers: ${{ steps.axes.outputs.verifiers }}
+    steps:
+      - id: axes
+        run: echo 'verifiers=["fsm","shell","python","yaml","secrets"]' >> "$GITHUB_OUTPUT"
+
+  verify:
+    needs: define-verifiers
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.head_ref, 'hermes/') ||
+      github.head_ref == 'hermes-autonomous'
+    strategy:
+      fail-fast: false
+      matrix:
+        verifier: ${{ fromJSON(needs.define-verifiers.outputs.verifiers) }}
+    steps:
+      - name: Checkout PR head (auto events)
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+
+      - name: Checkout requested branch (manual run)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.pr_head }}
+          fetch-depth: 0
+
+      - name: Verify — FSM layout (agnostic assets belong in bootstrap/core/)
+        if: matrix.verifier == 'fsm'
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import sys
+          from pathlib import Path
+          banned = {"extractFilesystem.sh", "addNonRootUser.sh", "termuxvoid-shim.sh", "busybox", "tvrun"}
+          distros = ("ubuntu", "arch", "alpine", "debian", "fedora")
+          bad = []
+          for d in distros:
+              dd = Path("bootstrap") / d
+              if not dd.exists():
+                  continue
+              for f in dd.rglob("*"):
+                  if f.is_file() and f.name in banned:
+                      bad.append(str(f))
+          if bad:
+              print("FSM VIOLATIONS (must live in bootstrap/core/):")
+              for b in bad:
+                  print(" -", b)
+              sys.exit(1)
+          print("FSM layout OK")
+          PY
+
+      - name: Verify — shell syntax
+        if: matrix.verifier == 'shell'
+        run: |
+          set -euo pipefail
+          failed=0
+          while IFS= read -r f; do
+            if ! bash -n "$f"; then failed=1; echo "syntax error: $f"; fi
+          done < <(git ls-files '*.sh')
+          [ "$failed" -eq 0 ] && echo "shell syntax OK ($(git ls-files '*.sh' | wc -l) files)"
+
+      - name: Verify — Python syntax
+        if: matrix.verifier == 'python'
+        run: |
+          set -euo pipefail
+          failed=0
+          while IFS= read -r f; do
+            if ! python3 -m py_compile "$f"; then failed=1; echo "compile error: $f"; fi
+          done < <(git ls-files '*.py')
+          rm -rf .github/scripts/__pycache__
+          [ "$failed" -eq 0 ] && echo "python syntax OK ($(git ls-files '*.py' | wc -l) files)"
+
+      - name: Setup uv (yaml check)
+        if: matrix.verifier == 'yaml'
+        uses: astral-sh/setup-uv@v5
+
+      - name: Verify — workflow YAML parses
+        if: matrix.verifier == 'yaml'
+        run: |
+          set -euo pipefail
+          uvx --with pyyaml python - <<'PY'
+          import sys
+          import glob
+          import yaml
+          bad = []
+          for f in sorted(glob.glob(".github/workflows/*.yml")):
+              try:
+                  yaml.safe_load(open(f))
+              except Exception as err:
+                  bad.append(f"{f}: {err}")
+          if bad:
+              print("INVALID YAML:")
+              for b in bad:
+                  print(" -", b)
+              sys.exit(1)
+          print("all workflows parse as YAML")
+          PY
+
+      - name: Verify — no hardcoded secrets
+        if: matrix.verifier == 'secrets'
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re, sys, subprocess
+          patterns = [
+              r"nvapi-[A-Za-z0-9_\-]{16,}",
+              r"ghp_[A-Za-z0-9]{20,}",
+              r"AKIA[0-9A-Z]{16}",
+              r"-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY",
+          ]
+          files = subprocess.run(["git", "ls-files"], capture_output=True, text=True).stdout.split()
+          hits = []
+          for rel in files:
+              try:
+                  text = open(rel, encoding="utf-8", errors="ignore").read()
+              except OSError:
+                  continue
+              for i, line in enumerate(text.splitlines(), 1):
+                  for p in patterns:
+                      if re.search(p, line):
+                          hits.append(f"{rel}:{i}: possible secret")
+                          break
+          if hits:
+              print("SECRETS FOUND:")
+              for h in hits[:20]:
+                  print(" -", h)
+              sys.exit(1)
+          print("no hardcoded secrets in tracked files")
+          PY
