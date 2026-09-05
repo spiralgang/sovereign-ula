@@ -49,9 +49,9 @@ AUTO_FIX = os.environ.get("AUTO_FIX", "true").lower() != "false"
 # (NIM retired meta/llama-3.3-70b-instruct on 2026-08-26 — lesson learned).
 PROVIDERS = [
     ("nvidia", "https://integrate.api.nvidia.com/v1/chat/completions",
-     "NVIDIA_API_KEY", ("meta/llama-4-maverick-17b-128e-instruct",
-                        "meta/llama-4-scout-17b-16e-instruct",
-                        "meta/llama-3.3-70b-instruct")),
+     "NVIDIA_API_KEY", ("nvidia/llama-3.1-nemotron-ultra-253b-v1",
+                        "deepseek-ai/deepseek-v4-flash-0731",
+                        "nvidia/llama-3.1-nemotron-70b-instruct")),
     ("gemini", "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
      "GEMINI_API_KEY", ("gemini-2.5-flash", "gemini-2.0-flash")),
     ("groq", "https://api.groq.com/openai/v1/chat/completions",
