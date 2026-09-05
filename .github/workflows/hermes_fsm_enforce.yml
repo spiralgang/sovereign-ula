@@ -185,8 +185,12 @@ jobs:
 
             let rawContent = null;
             let lastLlmErr = null;
+            // An LLM_MODEL override is PREPENDED to each provider's list (not
+            // pinned) so an EOL/retired override model falls through to the
+            // live fallbacks instead of defeating them.
             outer: for (const [pname, purl, penv, pmodels] of configured) {
-              for (const model of pmodels) {
+              const modelList = process.env.LLM_MODEL ? [process.env.LLM_MODEL, ...pmodels] : pmodels;
+              for (const model of modelList) {
                 try {
                   const response = await fetch(purl, {
                     method: 'POST',
@@ -195,7 +199,7 @@ jobs:
                       'Authorization': `Bearer ${process.env[penv]}`
                     },
                     body: JSON.stringify({
-                      model: process.env.LLM_MODEL || model,
+                      model,
                       messages: llmMessages,
                       temperature: 0.1 // Low temp for strict deterministic rule checking
                     })
