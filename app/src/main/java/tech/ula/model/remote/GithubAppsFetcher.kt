@@ -19,7 +19,9 @@ class GithubAppsFetcher(
     private operator fun <T> List<T>.component7() = get(6)
 
     private val branch = "master" // Base off different support branches for testing.
-    private val baseUrl = "https://github.com/spiralgang/UserLAnd-Assets-Support/raw/$branch/apps"
+    // The apps catalog (apps/apps.txt) is hosted in THIS repo (rebased from
+    // UserLAnd-Assets-Support). Per-app icons/scripts under apps/<name>/ are
+    // still being shipped — until then fetchAppIcon/Description/Script 404.
     private val baseUrl = "https://github.com/spiralgang/sovereign-ula/raw/$branch/apps"
 
     @Throws(IOException::class)

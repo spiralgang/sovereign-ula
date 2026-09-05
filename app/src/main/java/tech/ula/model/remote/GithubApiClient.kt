@@ -27,16 +27,13 @@ class GithubApiClient(
     private val client = OkHttpClient()
     private val latestResults: HashMap<String, ReleasesResponse?> = hashMapOf()
 
-    // All asset repos use the "latest" release tag. Kept as a single-point
-    // tunable in case a distro ever needs a pinned tag.
-    private fun getReleaseToUseForRepo(repo: String): String {
-        return "latest"
-    // Distro assets are published by distro-deploy-listener.yml as releases
-    // TAGGED with the distro name (ubuntu | debian | arch), NOT as "latest".
-    // "latest" is whatever release was created most recently — which is the
-    // signed APK release from build.yml, containing no distro assets. Using
-    // "latest" made every asset lookup fail (NPE crash on session start and a
-    // bogus "network required" error even with connectivity).
+    // Distro assets are published by distro-deploy-listener.yml as releases on
+    // spiralgang/sovereign-ula TAGGED with the distro name (ubuntu | debian |
+    // arch), NOT as "latest". "latest" is whatever release was created most
+    // recently — which is the signed APK release from build.yml, containing no
+    // distro assets. Using "latest" made every asset lookup fail (NPE crash on
+    // session start and a bogus "network required" error even with
+    // connectivity), so we query the distro-named tag directly.
     private fun getReleaseToUseForRepo(repo: String): String {
         return "tags/$repo"
     }
@@ -73,7 +70,8 @@ class GithubApiClient(
     private suspend fun queryLatestRelease(repo: String): ReleasesResponse = withContext(Dispatchers.IO) {
         val releaseToUse = getReleaseToUseForRepo(repo)
         val base = urlProvider.getBaseUrl()
-        val url = base + "repos/spiralgang/UserLAnd-Assets-$repo/releases/$releaseToUse"
+        // Distro rootfs/assets releases are self-hosted: distro-deploy-listener.yml
+        // publishes them to spiralgang/sovereign-ula (tag = distro name).
         val url = base + "repos/spiralgang/sovereign-ula/releases/$releaseToUse"
         val moshi = Moshi.Builder().build()
         val adapter = moshi.adapter(ReleasesResponse::class.java)
