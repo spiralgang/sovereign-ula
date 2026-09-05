@@ -14,6 +14,10 @@ secret values here — only pointers.
 - `GEMINI_API_KEY` / `GENAI_MODEL` — optional free-tier backend for Hermes
   (Google GenAI; default model `gemini-2.5-flash`). Provider auto-selects
   NVIDIA when both keys exist; force with `LLM_PROVIDER=gemini`.
+- Free-endpoint LLM chain (AI Agent PR Review + FSM Enforcer review):
+  `NVIDIA_API_KEY` → `GEMINI_API_KEY` → `GROQ_API_KEY` → `OPENROUTER_API_KEY`
+  → `HF_TOKEN` — first configured key wins, all OpenAI-compatible free tiers.
+  `VIBE_API_KEY` remains accepted as a legacy NVIDIA alias. No OpenAI anywhere.
 - `LLM_PROVIDER` — optional `nvidia` | `gemini` override (workflow input too).
 - `GDRIVE_CREDENTIALS` / `GDRIVE_FOLDER_ID` — Google service-account JSON
   (base64) + Drive folder for Hermes run-report backups.

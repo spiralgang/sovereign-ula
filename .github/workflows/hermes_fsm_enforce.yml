@@ -17,9 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # The deterministic preflight below is the enforcement gate. The LLM
-      # review is advisory and only runs when a key is configured, so a missing
-      # secret can never keep this check red.
-      HAS_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY != '' }}
+      # review is advisory, free-endpoints-only, and skipped when no key is
+      # configured — a missing secret can never keep this check red.
+      HAS_LLM_KEY: ${{ secrets.GEMINI_API_KEY != '' || secrets.NVIDIA_API_KEY != '' || secrets.GROQ_API_KEY != '' || secrets.OPENROUTER_API_KEY != '' || secrets.HF_TOKEN != '' }}
     
     steps:
       - name: Checkout Repository
@@ -66,13 +66,17 @@ jobs:
           fi
           echo "Pre-flight passed. Proceeding to Agentic diff analysis."
 
-      - name: 🧠 Agentic Architect Review (LLM Diff Parser)
-        if: env.HAS_OPENAI_API_KEY == 'true'
+      - name: 🧠 Agentic Architect Review (LLM Diff Parser — free endpoints only)
+        if: env.HAS_LLM_KEY == 'true'
         uses: actions/github-script@v7
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          # Use gpt-4o for high-reasoning complex diff analysis
-          LLM_MODEL: "gpt-4o"
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          # Optional model override; provider defaults below otherwise.
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
         with:
           script: |
             const fs = require('fs');
@@ -154,32 +158,60 @@ jobs:
             ${diffData}
             `;
 
-            console.log("Transmitting payload to LLM Architect...");
+            console.log("Transmitting payload to LLM Architect (free endpoints only)...");
 
-            // 4. Execute LLM FSM Evaluation
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-              },
-              body: JSON.stringify({
-                model: process.env.LLM_MODEL,
-                messages: [
-                  { role: "system", content: systemPrompt },
-                  { role: "user", content: userPrompt }
-                ],
-                temperature: 0.1 // Low temp for strict deterministic rule checking
-              })
-            });
-
-            if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(`LLM API Request Failed: ${response.status} - ${errorText}`);
+            // 4. Execute LLM FSM Evaluation. Free-tier OpenAI-compatible providers
+            // only, in priority order — mirrors .github/scripts/ai_review.py.
+            const PROVIDERS = [
+              ['nvidia', 'https://integrate.api.nvidia.com/v1/chat/completions', 'NVIDIA_API_KEY', 'meta/llama-3.3-70b-instruct'],
+              ['gemini', 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'GEMINI_API_KEY', 'gemini-2.5-flash'],
+              ['groq', 'https://api.groq.com/openai/v1/chat/completions', 'GROQ_API_KEY', 'llama-3.3-70b-versatile'],
+              ['openrouter', 'https://openrouter.ai/api/v1/chat/completions', 'OPENROUTER_API_KEY', 'meta-llama/llama-3.3-70b-instruct:free'],
+              ['huggingface', 'https://router.huggingface.co/v1/chat/completions', 'HF_TOKEN', 'meta-llama/Llama-3.3-70B-Instruct']
+            ];
+            const configured = PROVIDERS.filter(p => process.env[p[2]]);
+            if (configured.length === 0) {
+              core.setFailed('No free-tier LLM key configured (NVIDIA_API_KEY / GEMINI_API_KEY / GROQ_API_KEY / OPENROUTER_API_KEY / HF_TOKEN).');
+              return;
             }
 
-            const jsonResponse = await response.json();
-            const rawContent = jsonResponse.choices[0].message.content.trim();
+            const llmMessages = [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt }
+            ];
+
+            let rawContent = null;
+            let lastLlmErr = null;
+            for (const [pname, purl, penv, pmodel] of configured) {
+              try {
+                const response = await fetch(purl, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env[penv]}`
+                  },
+                  body: JSON.stringify({
+                    model: process.env.LLM_MODEL || pmodel,
+                    messages: llmMessages,
+                    temperature: 0.1 // Low temp for strict deterministic rule checking
+                  })
+                });
+                if (!response.ok) {
+                  const errorText = await response.text();
+                  throw new Error(`${pname}: ${response.status} - ${errorText.slice(0, 200)}`);
+                }
+                const jsonResponse = await response.json();
+                rawContent = jsonResponse.choices[0].message.content.trim();
+                console.log(`LLM provider used: ${pname}`);
+                break;
+              } catch (err) {
+                lastLlmErr = err;
+                console.log(`LLM call failed (${err.message}); trying next provider...`);
+              }
+            }
+            if (!rawContent) {
+              throw new Error(`All configured LLM providers failed: ${lastLlmErr}`);
+            }
             
             let reviews = [];
             try {
@@ -228,9 +260,10 @@ jobs:
             console.log("Review posted. Failing workflow to enforce FSM boundaries.");
             core.setFailed("FSM Architecture violated. See PR review for Hermes's instructions.");
 
-      - name: ℹ️ Skip LLM review (no OPENAI_API_KEY configured)
-        if: env.HAS_OPENAI_API_KEY != 'true'
+      - name: ℹ️ Skip LLM review (no free-tier LLM key configured)
+        if: env.HAS_LLM_KEY != 'true'
         run: |
-          echo "OPENAI_API_KEY is not set as a repository secret."
+          echo "No free-tier LLM key is set as a repository secret."
+          echo "Set one of: GEMINI_API_KEY, NVIDIA_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY, HF_TOKEN."
           echo "Deterministic FSM preflight still enforced; LLM diff review skipped."
 
