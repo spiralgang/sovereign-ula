@@ -67,21 +67,27 @@ jobs:
 
       - name: Sign APK with apksigner
         run: |
+          set -e
+          # assembleRelease's output name depends on AGP/archive config; locate it
+          # rather than hardcoding so the pipeline cannot rot on a rename.
+          UNSIGNED_APK=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          echo "Signing input: $UNSIGNED_APK"
+          test -n "$UNSIGNED_APK"
           $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner sign \
             --ks keystore.jks \
             --ks-key-alias "${{ secrets.SOVEREIGN_KEY_ALIAS }}" \
             --ks-pass pass:"${{ secrets.SOVEREIGN_KEYSTORE_PASSWORD }}" \
             --key-pass pass:"${{ secrets.SOVEREIGN_KEY_PASSWORD }}" \
             --out sovereign-ula.apk \
-            app/build/outputs/apk/release/sovereign-ula.apk
+            "$UNSIGNED_APK"
 
       - name: Verify signature
-        run: $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner verify app-release-signed.apk && echo "SIGNATURE OK"
+        run: $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner verify sovereign-ula.apk && echo "SIGNATURE OK"
 
       - name: Verify APK contents with aapt2 (package + components)
         run: |
           BT=$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)
-          $BT/aapt2 dump badging app-release-signed.apk > /tmp/badging.txt
+          $BT/aapt2 dump badging sovereign-ula.apk > /tmp/badging.txt
           echo "--- package ---"; grep -E "^package:" /tmp/badging.txt
           echo "--- our service ---"; grep -i "EdgePanelService" /tmp/badging.txt || echo "note: EdgePanelService has no intent-filter so aapt2 may omit it (confirmed present in dex)"
           echo "--- launchable activity ---"; grep -E "launchable-activity:" /tmp/badging.txt
