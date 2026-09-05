@@ -72,25 +72,31 @@ jobs:
             const fs = require('fs');
             const { owner, repo, number: pull_number } = context.issue;
             
-            // 1. Fetch the PR Diff
-            const { data: diffData } = await github.rest.pulls.get({
-              owner,
-              repo,
-              pull_number,
-              mediaType: { format: 'diff' }
-            });
-            
-            if (!diffData || diffData.length === 0) {
+            // 1+2. Fetch modified files (paginated). The whole-PR diff media type
+            // 406s once a PR touches >300 files, so walk the files API instead;
+            // each entry carries its own per-file patch.
+            const files = [];
+            for (let page = 1; ; page++) {
+              const { data: pageFiles } = await github.rest.pulls.listFiles({
+                owner,
+                repo,
+                pull_number,
+                per_page: 100,
+                page
+              });
+              files.push(...pageFiles);
+              if (pageFiles.length < 100) break;
+            }
+
+            if (!files || files.length === 0) {
               console.log("No diff found. Exiting.");
               return;
             }
 
-            // 2. Fetch modified files for line-level commenting
-            const { data: files } = await github.rest.pulls.listFiles({
-              owner,
-              repo,
-              pull_number
-            });
+            const diffData = files
+              .filter(f => typeof f.patch === 'string' && f.patch.length > 0)
+              .map(f => `diff --git a/${f.filename} b/${f.filename}\n${f.patch}`)
+              .join('\n');
 
             const fileList = files.map(f => f.filename).join('\n');
             

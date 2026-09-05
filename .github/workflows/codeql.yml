@@ -48,7 +48,7 @@ jobs:
         - language: c-cpp
           build-mode: none
         - language: java-kotlin
-          build-mode: autobuild
+          build-mode: manual
         - language: python
           build-mode: none
         # CodeQL supports the following values keywords for 'language': 'actions', 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'rust', 'swift'
@@ -63,11 +63,16 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v7
 
-    # Add any setup steps before running the `github/codeql-action/init` action.
-    # This includes steps like installing compilers or runtimes (`actions/setup-node`
-    # or others). This is typically only required for manual builds.
-    # - name: Setup runtime (example)
-    #   uses: actions/setup-example@v1
+    # This project is pinned to JDK 8 + AGP 3.4.3 (Gradle 5.1.1). CodeQL's
+    # autobuild drives Gradle with its own JDK 11 and no Android SDK, which cannot
+    # build this codebase. The java-kotlin cell therefore uses build-mode: manual
+    # and reproduces build.yml's proven environment below.
+    - name: Set up JDK 8 (java-kotlin cell only)
+      if: matrix.language == 'java-kotlin'
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '8'
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -82,22 +87,29 @@ jobs:
         # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
         # queries: security-extended,security-and-quality
 
-    # If the analyze step fails for one of the languages you are analyzing with
-    # "We were unable to automatically build your code", modify the matrix above
-    # to set the build mode to "manual" for that language. Then modify this step
-    # to build your code.
-    # ℹ️ Command-line programs to run using the OS shell.
-    # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-    - name: Run manual build steps
+    - name: "Run manual build steps (java-kotlin cell: pinned Android SDK + assembleRelease)"
       if: matrix.build-mode == 'manual'
       shell: bash
       run: |
-        echo 'If you are using a "manual" build mode for one or more of the' \
-          'languages you are analyzing, replace this with the commands to build' \
-          'your code, for example:'
-        echo '  make bootstrap'
-        echo '  make release'
-        exit 1
+        set -e
+        SDK=/opt/android-sdk
+        mkdir -p $SDK/cmdline-tools
+        curl -sL https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -o cmdtools.zip
+        unzip -q cmdtools.zip -d $SDK/cmdline-tools
+        mv $SDK/cmdline-tools/cmdline-tools $SDK/cmdline-tools/latest
+        export ANDROID_HOME=$SDK
+        export PATH=$SDK/cmdline-tools/latest/bin:$PATH
+        yes | sdkmanager --sdk_root=$SDK --licenses >/dev/null || true
+        sdkmanager --sdk_root=$SDK "platform-tools" "build-tools;29.0.3" "ndk;21.4.7075529"
+        curl -sL https://dl.google.com/android/repository/platform-28_r06.zip -o plat28.zip
+        curl -sL https://dl.google.com/android/repository/platform-29_r04.zip -o plat29.zip
+        mkdir -p $SDK/platforms
+        unzip -q plat28.zip -d $SDK/platforms
+        unzip -q plat29.zip -d $SDK/platforms
+        echo "sdk.dir=$SDK" > local.properties
+        export ANDROID_NDK_HOME=$SDK/ndk/21.4.7075529
+        chmod +x gradlew
+        ./gradlew assembleRelease --no-daemon
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
