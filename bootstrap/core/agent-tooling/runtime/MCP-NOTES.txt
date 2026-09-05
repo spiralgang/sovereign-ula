@@ -1,0 +1,44 @@
+MCP PLUGINS IN THE SOVEREIGN-ULA DISTRO
+========================================
+
+Antigravity CLI (agy) talks to MCP servers declared in a single mcpServers
+object inside ~/.gemini/config/mcp_config.json (global) or .agents/
+mcp_config.json (per-workspace). Three plugins are pre-installed and wired:
+
+  filesystem  @modelcontextprotocol/server-filesystem  (bin: mcp-server-filesystem)
+              read/write access to /root, /support and /tmp from the agent.
+              Add your storage path (e.g. /storage/emulated/0) to "args" and
+              create the dir first if you get "directory does not exist".
+
+  github      @modelcontextprotocol/server-github       (bin: mcp-server-github)
+              issues/PRs/repos from inside the agent. Requires a token in the
+              agy process env BEFORE launch:
+                export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_...
+                agy
+              (stdio servers inherit agy's environment — the token is never
+              written into the config file or the image.)
+
+  context7    @upstash/context7-mcp                      (bin: context7-mcp)
+              up-to-date docs lookups for thousands of libraries (free tier).
+
+WHY NO NPX, AND WHY NODE 22
+  The servers are installed GLOBALLY at rootfs build time (npm -g), so agy
+  launches them directly with zero download lag. Node itself comes from the
+  NodeSource 22.x apt repo ("server-hosted"): Noble's stock nodejs is 18.x,
+  which these servers reject (engines >= 20.18.1). apt + the containerized
+  rootfs build cache this layer, so rebuilds are cheap and lag-managed.
+
+  If a server is missing, fall back to on-demand npx by editing
+  ~/.gemini/config/mcp_config.json:
+    "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "/root"]
+  (slower first run — populates the npm cache for later).
+
+CONFIG SCHEMA (Antigravity)
+  stdio server : { "command": "/abs/or/path/bin", "args": [...], "env": {...} }
+  remote server: { "serverUrl": "https://...", "headers": {...} }
+  To verify inside agy, type /mcp — live status + reload + logs.
+
+ADDING MORE PLUGINS
+  npm install -g <your-mcp-server>          # or npx-based fallback
+  then add it under "mcpServers" in ~/.gemini/config/mcp_config.json.
+  Reference: https://antigravity.google/docs/mcp/

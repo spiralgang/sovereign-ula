@@ -1,0 +1,112 @@
+name: Hermes Autonomous Runner
+
+# Continuous 30-minute improve loop (copilot-swe-agent blueprint):
+#
+#   Orchestration  -> this workflow: cron pulse, modes, concurrency guard
+#   Analysis       -> runner.py analyze(): FSM layout, syntax, secrets, TODOs
+#   Prioritization -> refactor.py scores findings (type x severity x fixability)
+#   Action engine  -> refactor.py LLM file fixes (syntax-gated) + runner.py
+#                     plan()/execute() for one structural improvement
+#   Verification   -> runner.py verify()/revert(): never ship broken code
+#   Knowledge      -> knowledge.py: history.jsonl (committed) -> SQLite mirror
+#                     + trend stats; state.json backlog persistence
+#   Report/Drive   -> drive_sync.py: report -> .agent/logs/ -> Google Drive
+#
+# Everything lands on the `hermes-autonomous` branch as a DRAFT PR (never the
+# default branch). See .agent/ARCHITECTURE.md for the full design + Drive setup.
+#
+# Required secrets:
+#   NVIDIA_API_KEY      — build.nvidia.com key for the NIM reasoning model
+#   GEMINI_API_KEY      — ALTERNATIVE free-tier backend (AI Studio key); provider
+#                         auto-selects NVIDIA if both keys are present
+#   GENAI_MODEL         — optional model override (default gemini-2.5-flash)
+#   GDRIVE_CREDENTIALS  — base64 Google service-account JSON (optional, Drive backup)
+#   GDRIVE_FOLDER_ID    — Drive folder id; auto-created if unset (optional)
+#   GITHUB_TOKEN        — provided automatically
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run mode (full = refactor + planner, fix-only = refactor engine, analyze-only = report only)'
+        type: choice
+        options:
+          - full
+          - analyze-only
+          - fix-only
+        default: full
+      provider:
+        description: 'LLM provider (auto = NVIDIA if set, else Gemini free tier)'
+        type: choice
+        options:
+          - auto
+          - nvidia
+          - gemini
+        default: auto
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: hermes-autonomous-runner
+  cancel-in-progress: false
+
+jobs:
+  agent-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25  # 30-min slot minus a 5-min buffer for the next pulse
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so branch sync / merge works cleanly
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: .agent/requirements.txt
+
+      - name: Install agent dependencies (uv)
+        run: uv pip install --system -r .agent/requirements.txt
+
+      - name: Run Hermes agent
+        timeout-minutes: 22
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GENAI_MODEL: ${{ secrets.GENAI_MODEL }}
+          LLM_PROVIDER: ${{ github.event.inputs.provider == 'auto' && '' || github.event.inputs.provider || '' }}
+          GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python .agent/runner.py --mode "${{ github.event.inputs.mode || 'full' }}"
+
+      - name: Upload run logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermes-logs-${{ github.run_id }}
+          path: .agent/logs/
+          retention-days: 14
+
+      - name: Write run summary
+        if: always()
+        shell: bash
+        run: |
+          latest=$(ls -t .agent/logs/report-*.md 2>/dev/null | head -1)
+          if [ -n "$latest" ]; then
+            echo "## Hermes run report" >> "$GITHUB_STEP_SUMMARY"
+            tail -n 80 "$latest" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No Hermes report was produced this run." >> "$GITHUB_STEP_SUMMARY"
+          fi
