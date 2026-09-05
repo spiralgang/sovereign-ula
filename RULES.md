@@ -38,10 +38,18 @@
     original dropbear (port 2022). The ORIGINAL dropbear config is the source-of-truth
     fallback kept at `/support/original/startSSHServer.sh`.
 
-## Assets org
-- The app now fetches distro rootfs + support assets from `spiralgang/UserLAnd-Assets-*`
-  (was `CypherpunkArmory`). The distro LIST comes from `spiralgang/UserLAnd-Assets-Support`.
-  Keep these two org references in sync if you repoint again.
+## Assets org (current flow)
+- Distro rootfs/assets are SELF-HOSTED: `distro-deploy-listener.yml` publishes the Noble
+  rootfs + assets to **`spiralgang/sovereign-ula` releases TAGGED with the distro name**
+  (ubuntu | debian | arch). The app fetches them by that tag (GithubApiClient uses
+  `releases/tags/<distro>`). No external assets org is required at runtime.
+- The apps catalog (`apps/apps.txt` + per-app files under `apps/`) is hosted IN THIS repo
+  and fetched raw from `spiralgang/sovereign-ula/raw/master/apps`.
+- Build-time native libs (proot/busybox .so) still come from the upstream
+  `CypherpunkArmory/UserLAnd-Assets-Support` release `v1.5.1` — the only publisher of those
+  zips. Do NOT repoint that task to spiralgang (PR #5 -> 404 -> assembleRelease fails).
+- Optional mirror to `spiralgang/UserLAnd-Assets-*` releases requires a cross-repo PAT
+  (HERMES_HUB_KEY); keep references in sync if you repoint again.
 
 ## Do not
 - Do not commit `keystore.jks` or any keystore (gitignored).

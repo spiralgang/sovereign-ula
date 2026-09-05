@@ -24,7 +24,7 @@ on its own settings, theme, process, evolved concept, and updated bootstrap pack
   Absolutely no billing client is initialised/no premium only features.
 - **Mandatory signing certificate** —
   The app aborts unless signed by our privileged release certificates.
-- **Arch Linux** —
+- **Ubuntu 24.04 (Noble)** —
   As the default / auto-bootstrap distribution chroot/proot environment compiler
 - **Aarch64 Glibc Compatible Translator** —
   Updated and evolved packages ensuring the Linux-GNU environment is fully compatible with Linux-GLIBC.

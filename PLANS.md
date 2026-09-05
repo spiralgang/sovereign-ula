@@ -12,7 +12,7 @@ The **unique features** we add on top of the stock UserLAnd runtime are:
 - A floating **edge-panel overlay** service (EdgePanelService).
 - **In-app billing disabled** and **mandatory signing-certificate enforcement**
   (SovereignApplication refuses to run if not signed by our release cert).
-- **Arch Linux as the default / auto-bootstrap distribution.**
+- **Ubuntu 24.04 (Noble) as the default / auto-bootstrap distribution.**
 
 Everything else (the terminal, proot/PRoot filesystem management, the
 `ServerService`, `UlaDocProvider`, session handling) is the stock UserLAnd
@@ -71,19 +71,39 @@ separate installable app. This is the correct, reproducible approach.
 - Assets org repointed **CypherpunkArmory -> spiralgang**.
 - `sov_hero.jpeg` is now the single branding image (launcher/round/foreground/notification
   icons regenerated from it; in-app MOTD background).
-- Modern Noble bootstrap authored under `bootstrap/ubuntu/` (rootfs builder, universal
-  /support layer, glibc/termuxvoid shim, BOTH selinux designs, BOTH SSH designs w/ IMEI anchor).
+- Modern Noble bootstrap authored under `bootstrap/ubuntu/` (rootfs builder, BOTH
+  selinux designs, BOTH SSH designs w/ IMEI anchor). The universal /support layer,
+  `sovereign-motd.sh`, and the glibc/termuxvoid shim live in **`bootstrap/core/`**
+  (FSM agnostic core — distro dirs carry only distro config; the FSM enforcer's
+  preflight passes).
 - CI: SDK setup + Gradle build + sign + release (build.yml). NEW: `ai-agent-review.yml`
   (LLM PR review runner) + `distro-deploy-listener.yml` (app-triggered distro tar.gz build).
 - AI Agent PR Review workflow runs green against the NVIDIA LLM (model meta/llama-3.1-8b-instruct).
+- Hermes Autonomous Runner (`autonomous-agent.yml` + `.agent/`) runs on a 30-minute
+  cron: analyze → NIM LLM plans one improvement → apply on `hermes-autonomous` →
+  verify → draft PR → report to `.agent/logs/` + Google Drive.
 
 ## Remaining work
 - [x] Get `assembleRelease` to produce a signed APK and a published Release (build.yml does this).
-- [ ] Create the `spiralgang/UserLAnd-Assets-Ubuntu` release assets + `UserLAnd-Assets-Support`
-      distro list so the app can actually pull the Noble rootfs at runtime.
-- [ ] Wire the app's "deploy chosen distro" button to dispatch `distro-deploy-listener.yml`.
+- [x] Distro assets are SELF-HOSTED: `distro-deploy-listener.yml` publishes the Noble rootfs +
+      assets to `sovereign-ula` releases tagged with the distro name (ubuntu | debian | arch);
+      the app fetches them by tag (GithubApiClient `releases/tags/<distro>`). The apps catalog
+      (`apps/apps.txt`) is rebased into THIS repo — no `UserLAnd-Assets-*` dependency at runtime.
+- [x] (was issue #58) termuxvoid shim + the whole universal support layer moved to
+      `bootstrap/core/` — the FSM enforcer preflight passes.
+- [x] In-app "deploy distro -> workflow_dispatch" is DROPPED (an on-device dispatch needs a
+      PAT; instead `distro-deploy-listener.yml` is run on demand and the app pulls the resulting
+      tagged releases — see GithubApiClient).
 - [ ] Add in-app "update available" prompt (optional, user-driven).
-- [ ] (Roadmap) glibc/termux shim hardening + smart auto-bundle package manager.
+      Design: stamp the release tag into the APK at build time (build.yml passes
+      `-PsovereignVersionName=v1.0.${{ github.run_number }}`; defaultConfig reads the property,
+      defaulting to `2.8.3`), then MainActivity compares GitHub `releases/latest` with
+      `BuildConfig.VERSION_NAME` and offers an optional download dialog. Needs a CI-verified
+      pass — the APK only ever compiles on the runner.
+- [ ] Ship per-app icons/scripts under `apps/<name>/` (apps.txt lists firefox/git/vim; the
+      fetcher looks for `<name>.png/.txt/.sh` beside the catalog).
+- [ ] (Roadmap) glibc/termux shim hardening + smart auto-bundle package manager; Drive backup
+      for Hermes run reports is wired (GDRIVE_CREDENTIALS / GDRIVE_FOLDER_ID secrets).
 
 ## Environment quirks to remember
 - GitHub Actions runners run Node 24; actions/checkout@v4 + setup-java@v4 print a

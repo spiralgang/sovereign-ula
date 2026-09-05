@@ -15,7 +15,7 @@ only swap `applicationId` so it installs separately.
 - `EdgePanelService` — floating settings edge-panel overlay.
 - `SovereignApplication` — mandatory signing-certificate enforcement (kills the
   process if signed by any cert other than the mandated release cert).
-- Arch Linux as the default distribution.
+- Ubuntu 24.04 (Noble) as the default / auto-bootstrap distribution.
 - Billing disabled (no `com.android.vending.BILLING`).
 
 ## How the rebrand is assembled (context)
