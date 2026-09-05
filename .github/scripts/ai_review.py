@@ -44,18 +44,24 @@ PR_NUMBER = os.environ.get("PR_NUMBER", "")
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
 AUTO_FIX = os.environ.get("AUTO_FIX", "true").lower() != "false"
 
-# (name, base_url, env_var, default_model) — first entry with a key wins.
+# (name, base_url, env_var, model_fallbacks) — first entry with a key wins.
+# Each provider tries its models in order; 404/410/EOL advances to the next
+# (NIM retired meta/llama-3.3-70b-instruct on 2026-08-26 — lesson learned).
 PROVIDERS = [
     ("nvidia", "https://integrate.api.nvidia.com/v1/chat/completions",
-     "NVIDIA_API_KEY", "meta/llama-3.3-70b-instruct"),
+     "NVIDIA_API_KEY", ("meta/llama-4-maverick-17b-128e-instruct",
+                        "meta/llama-4-scout-17b-16e-instruct",
+                        "meta/llama-3.3-70b-instruct")),
     ("gemini", "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-     "GEMINI_API_KEY", "gemini-2.5-flash"),
+     "GEMINI_API_KEY", ("gemini-2.5-flash", "gemini-2.0-flash")),
     ("groq", "https://api.groq.com/openai/v1/chat/completions",
-     "GROQ_API_KEY", "llama-3.3-70b-versatile"),
+     "GROQ_API_KEY", ("llama-3.3-70b-versatile", "llama-3.1-8b-instant")),
     ("openrouter", "https://openrouter.ai/api/v1/chat/completions",
-     "OPENROUTER_API_KEY", "meta-llama/llama-3.3-70b-instruct:free"),
+     "OPENROUTER_API_KEY", ("meta-llama/llama-3.3-70b-instruct:free",
+                            "deepseek/deepseek-chat-v3-0324:free")),
     ("huggingface", "https://router.huggingface.co/v1/chat/completions",
-     "HF_TOKEN", "meta-llama/Llama-3.3-70B-Instruct"),
+     "HF_TOKEN", ("meta-llama/Llama-3.3-70B-Instruct",
+                  "Qwen/Qwen2.5-72B-Instruct")),
 ]
 
 SCHEMA_HINT = (
@@ -169,20 +175,21 @@ def parse_diff(diff_text):
 # LLM call (free endpoints only)
 # --------------------------------------------------------------------------
 def resolve_provider():
-    """Return (name, url, key, model) for the first configured provider."""
+    """Return (name, url, key, models) for the first configured provider."""
     base_override = os.environ.get("LLM_BASE_URL")
     model_override = os.environ.get("LLM_MODEL")
-    for name, url, env_var, default_model in PROVIDERS:
+    for name, url, env_var, models in PROVIDERS:
         key = os.environ.get(env_var)
         if env_var == "NVIDIA_API_KEY" and not key:
             key = os.environ.get("VIBE_API_KEY")  # legacy alias
         if key:
-            return name, base_override or url, key, model_override or default_model
-    return None, None, None, model_override or "gemini-2.5-flash"
+            ordered = (model_override,) + tuple(m for m in models if m != model_override) if model_override else models
+            return name, base_override or url, key, ordered
+    return None, None, None, (model_override,) if model_override else ("gemini-2.5-flash",)
 
 
 def call_llm(diff_text, pr_title, pr_body):
-    name, url, key, model = resolve_provider()
+    name, url, key, models = resolve_provider()
     if not key:
         raise RuntimeError(
             "No free-tier LLM key configured. Add one of: "
@@ -194,7 +201,6 @@ def call_llm(diff_text, pr_title, pr_body):
     )
     user = f"PR: {pr_title}\n\nDescription:\n{pr_body or '(none)'}\n\nDIFF:\n{diff_text[:16000]}\n\n{SCHEMA_HINT}"
     payload = {
-        "model": model,
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
@@ -204,26 +210,28 @@ def call_llm(diff_text, pr_title, pr_body):
         "temperature": 0.1,
     }
     last_err = None
-    for provider_name, p_url, p_key, p_model in [p for p in PROVIDERS if os.environ.get(p[2])]:
+    for provider_name, p_url, p_key, p_models in [p for p in PROVIDERS if os.environ.get(p[2])]:
         u = os.environ.get("LLM_BASE_URL") if provider_name == name else p_url
-        body = dict(payload, model=os.environ.get("LLM_MODEL") or p_model)
-        req = urllib.request.Request(u, method="POST")
-        req.add_header("Authorization", f"Bearer {p_key}")
-        req.add_header("Content-Type", "application/json")
-        req.add_header("User-Agent", "sovereign-ai-reviewer")
-        for _ in range(2):
-            try:
-                with urllib.request.urlopen(req, data=json.dumps(body).encode(), timeout=240) as r:
-                    resp = json.loads(r.read().decode())
-                content = resp["choices"][0]["message"]["content"].strip()
-                if content.startswith("```"):
-                    content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content, flags=re.S)
-                data = json.loads(content)
-                print(f"LLM provider used: {provider_name} ({p_model})")
-                return data.get("findings", data) if isinstance(data, dict) else data
-            except (OSError, KeyError, ValueError, json.JSONDecodeError) as e:
-                last_err = e
-                print(f"LLM call failed on {provider_name}: {e}; retrying...")
+        for model in p_models:
+            body = dict(payload, model=model)
+            req = urllib.request.Request(u, method="POST")
+            req.add_header("Authorization", f"Bearer {p_key}")
+            req.add_header("Content-Type", "application/json")
+            req.add_header("User-Agent", "sovereign-ai-reviewer")
+            for _ in range(2):
+                try:
+                    with urllib.request.urlopen(req, data=json.dumps(body).encode(), timeout=240) as r:
+                        resp = json.loads(r.read().decode())
+                    content = resp["choices"][0]["message"]["content"].strip()
+                    if content.startswith("```"):
+                        content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content, flags=re.S)
+                    data = json.loads(content)
+                    print(f"LLM provider used: {provider_name} ({model})")
+                    return data.get("findings", data) if isinstance(data, dict) else data
+                except (OSError, KeyError, ValueError, json.JSONDecodeError) as e:
+                    last_err = e
+                    print(f"LLM call failed on {provider_name}/{model}: {e}; retrying...")
+            # model-level EOL/404/410 failures fall through to the next model
     raise last_err or RuntimeError("all LLM providers failed")
 
 

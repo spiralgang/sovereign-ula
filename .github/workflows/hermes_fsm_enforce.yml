@@ -162,12 +162,15 @@ jobs:
 
             // 4. Execute LLM FSM Evaluation. Free-tier OpenAI-compatible providers
             // only, in priority order — mirrors .github/scripts/ai_review.py.
+            // Each provider carries a model fallback list; 404/410/EOL on one
+            // model advances to the next (NIM retired meta/llama-3.3-70b-instruct
+            // on 2026-08-26 — hence self-healing defaults).
             const PROVIDERS = [
-              ['nvidia', 'https://integrate.api.nvidia.com/v1/chat/completions', 'NVIDIA_API_KEY', 'meta/llama-3.3-70b-instruct'],
-              ['gemini', 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'GEMINI_API_KEY', 'gemini-2.5-flash'],
-              ['groq', 'https://api.groq.com/openai/v1/chat/completions', 'GROQ_API_KEY', 'llama-3.3-70b-versatile'],
-              ['openrouter', 'https://openrouter.ai/api/v1/chat/completions', 'OPENROUTER_API_KEY', 'meta-llama/llama-3.3-70b-instruct:free'],
-              ['huggingface', 'https://router.huggingface.co/v1/chat/completions', 'HF_TOKEN', 'meta-llama/Llama-3.3-70B-Instruct']
+              ['nvidia', 'https://integrate.api.nvidia.com/v1/chat/completions', 'NVIDIA_API_KEY', ['meta/llama-4-maverick-17b-128e-instruct', 'meta/llama-4-scout-17b-16e-instruct', 'meta/llama-3.3-70b-instruct']],
+              ['gemini', 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'GEMINI_API_KEY', ['gemini-2.5-flash', 'gemini-2.0-flash']],
+              ['groq', 'https://api.groq.com/openai/v1/chat/completions', 'GROQ_API_KEY', ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']],
+              ['openrouter', 'https://openrouter.ai/api/v1/chat/completions', 'OPENROUTER_API_KEY', ['meta-llama/llama-3.3-70b-instruct:free', 'deepseek/deepseek-chat-v3-0324:free']],
+              ['huggingface', 'https://router.huggingface.co/v1/chat/completions', 'HF_TOKEN', ['meta-llama/Llama-3.3-70B-Instruct', 'Qwen/Qwen2.5-72B-Instruct']]
             ];
             const configured = PROVIDERS.filter(p => process.env[p[2]]);
             if (configured.length === 0) {
@@ -182,31 +185,33 @@ jobs:
 
             let rawContent = null;
             let lastLlmErr = null;
-            for (const [pname, purl, penv, pmodel] of configured) {
-              try {
-                const response = await fetch(purl, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env[penv]}`
-                  },
-                  body: JSON.stringify({
-                    model: process.env.LLM_MODEL || pmodel,
-                    messages: llmMessages,
-                    temperature: 0.1 // Low temp for strict deterministic rule checking
-                  })
-                });
-                if (!response.ok) {
-                  const errorText = await response.text();
-                  throw new Error(`${pname}: ${response.status} - ${errorText.slice(0, 200)}`);
+            outer: for (const [pname, purl, penv, pmodels] of configured) {
+              for (const model of pmodels) {
+                try {
+                  const response = await fetch(purl, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${process.env[penv]}`
+                    },
+                    body: JSON.stringify({
+                      model: process.env.LLM_MODEL || model,
+                      messages: llmMessages,
+                      temperature: 0.1 // Low temp for strict deterministic rule checking
+                    })
+                  });
+                  if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`${pname}/${model}: ${response.status} - ${errorText.slice(0, 200)}`);
+                  }
+                  const jsonResponse = await response.json();
+                  rawContent = jsonResponse.choices[0].message.content.trim();
+                  console.log(`LLM provider used: ${pname} (${model})`);
+                  break outer;
+                } catch (err) {
+                  lastLlmErr = err;
+                  console.log(`LLM call failed (${err.message}); trying next model/provider...`);
                 }
-                const jsonResponse = await response.json();
-                rawContent = jsonResponse.choices[0].message.content.trim();
-                console.log(`LLM provider used: ${pname}`);
-                break;
-              } catch (err) {
-                lastLlmErr = err;
-                console.log(`LLM call failed (${err.message}); trying next provider...`);
               }
             }
             if (!rawContent) {
