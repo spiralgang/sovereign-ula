@@ -46,6 +46,27 @@ class UlaFiles(
         process.waitFor()
     }
 
+    fun makePermissionsUsable(containingDirectoryPath: String, filenames: List<String>) {
+        if (filenames.isEmpty()) return
+
+        val containingDirectory = File(containingDirectoryPath)
+        containingDirectory.mkdirs()
+
+        // Batch files into chunks to prevent exceeding the maximum command line length
+        val chunkSize = 1000
+        for (chunk in filenames.chunked(chunkSize)) {
+            val commandToRun = arrayListOf("chmod", "0777")
+            commandToRun.addAll(chunk)
+
+            val pb = ProcessBuilder(commandToRun)
+            pb.directory(containingDirectory)
+
+            val process = pb.start()
+            process.waitFor()
+        }
+    }
+
+
     private fun resolveSdCardScopedStorage(context: Context): File? {
         // Allegedly returns at most 2 elements, if there is a physical external storage device,
         // according to https://developer.android.com/training/data-storage/files at

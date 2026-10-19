@@ -30,11 +30,15 @@ class FilesystemManager(
         if (!targetDirectory.exists()) targetDirectory.mkdirs()
         val files = sharedDirectory.listFiles()
         files?.let {
+            val copiedFileNames = mutableListOf<String>()
             for (file in files) {
                 if (file.name.contains("rootfs") && filesystem.isCreatedFromBackup) continue
                 val targetFile = File("${targetDirectory.absolutePath}/${file.name}")
                 file.copyTo(targetFile, overwrite = true)
-                ulaFiles.makePermissionsUsable(targetDirectory.absolutePath, file.name)
+                copiedFileNames.add(file.name)
+            }
+            if (copiedFileNames.isNotEmpty()) {
+                ulaFiles.makePermissionsUsable(targetDirectory.absolutePath, copiedFileNames)
             }
         }
     }
