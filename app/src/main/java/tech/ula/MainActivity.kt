@@ -182,6 +182,8 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
             logger.initialize(this)
         }
 
+        checkForUpdates()
+
         viewModel.getState().observe(this, stateObserver)
         if (intent?.type.equals("settings"))
             navController.navigate(R.id.settings_fragment)
@@ -281,6 +283,27 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
         return NavigationUI.onNavDestinationSelected(item,
                 Navigation.findNavController(this, R.id.nav_host_fragment)) ||
                 super.onOptionsItemSelected(item)
+    }
+
+    private fun checkForUpdates() {
+        CoroutineScope(Dispatchers.Main).launch {
+            val checker = UpdateChecker(this@MainActivity)
+            val latestVersion = checker.checkForUpdate(BuildConfig.VERSION_NAME)
+            if (latestVersion != null) {
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Update Available")
+                    .setMessage("A new version of Sovereign ULA ($latestVersion) is available. Would you like to download it?")
+                    .setPositiveButton("Download") { dialog, _ ->
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/spiralgang/sovereign-ula/releases/latest"))
+                        startActivity(intent)
+                        dialog.dismiss()
+                    }
+                    .setNegativeButton("Later") { dialog, _ ->
+                        dialog.dismiss()
+                    }
+                    .create().show()
+            }
+        }
     }
 
     private fun sendWikiIntent() {

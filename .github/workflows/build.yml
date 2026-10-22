@@ -60,7 +60,7 @@ jobs:
         run: |
           export ANDROID_HOME=/opt/android-sdk
           export ANDROID_NDK_HOME=/opt/android-sdk/ndk/21.4.7075529
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease -PsovereignVersionName=v1.0.${{ github.run_number }} --no-daemon
 
       - name: Decode signing keystore
         run: echo "${{ secrets.SOVEREIGN_KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
