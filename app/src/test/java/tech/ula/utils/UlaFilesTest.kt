@@ -44,7 +44,7 @@ class UlaFilesTest {
         testFile.createNewFile()
 
         ulaFiles = UlaFiles(mockContext, testLibDir.path, mockSymlinker)
-        ulaFiles.makePermissionsUsable(tempFolder.root.path, testFileName)
+        ulaFiles.makePermissionsUsable(tempFolder.root.path, listOf(testFileName))
 
         var output = ""
         val proc = Runtime.getRuntime().exec("ls -l ${testFile.path}")

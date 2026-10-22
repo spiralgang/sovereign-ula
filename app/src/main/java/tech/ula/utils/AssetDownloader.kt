@@ -154,8 +154,9 @@ class AssetDownloader(
         val archiver = archiverFactory.createArchiver(stagingTarget)
         archiver.extract(stagingTarget, destination)
         val extractedFiles = destination.listFiles() ?: return@withContext
-        for (file in extractedFiles) {
-            ulaFiles.makePermissionsUsable(destination.absolutePath, file.name)
+        val extractedFileNames = extractedFiles.map { it.name }
+        if (extractedFileNames.isNotEmpty()) {
+            ulaFiles.makePermissionsUsable(destination.absolutePath, extractedFileNames)
         }
         assetPreferences.setLatestDownloadVersion(repo, version)
     }

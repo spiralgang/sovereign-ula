@@ -191,9 +191,8 @@ class FilesystemManagerTest {
         filesystemManager.copyAssetsToFilesystem(filesystem)
 
         assertTrue(targetDirectory.exists())
-        targetFiles.forEach { file ->
-            verify(mockUlaFiles).makePermissionsUsable(targetDirectory.path, file.name)
-        }
+        val expectedFiles = targetFiles.map { it.name }.toList()
+        verify(mockUlaFiles).makePermissionsUsable(targetDirectory.path, expectedFiles)
     }
 
     @Test
@@ -217,10 +216,8 @@ class FilesystemManagerTest {
         filesystemManager.copyAssetsToFilesystem(filesystem)
 
         assertTrue(targetDirectory.exists())
-        targetFiles.forEach {
-            if (it.name.contains("rootfs.tar.gz")) return@forEach
-            verify(mockUlaFiles).makePermissionsUsable(targetDirectory.path, it.name)
-        }
+        val expectedFiles = targetFiles.filter { !it.name.contains("rootfs.tar.gz") }.map { it.name }.toList()
+        verify(mockUlaFiles).makePermissionsUsable(targetDirectory.path, expectedFiles)
     }
 
     @Test
