@@ -893,9 +893,17 @@ public final class TerminalEmulator {
                                 // Respond with invalid request:
                                 mSession.write("\033P0+r" + part + "\033\\");
                             } else {
-                                StringBuilder hexEncoded = new StringBuilder();
-                                for (int j = 0; j < responseValue.length(); j++) {
-                                    hexEncoded.append(String.format("%02X", (int) responseValue.charAt(j)));
+                                int len = responseValue.length();
+                                StringBuilder hexEncoded = new StringBuilder(len * 2);
+                                for (int j = 0; j < len; j++) {
+                                    int c = responseValue.charAt(j);
+                                    if (c < 256) {
+                                        hexEncoded.append("0123456789ABCDEF".charAt((c >> 4) & 0xF)).append("0123456789ABCDEF".charAt(c & 0xF));
+                                    } else {
+                                        String hex = Integer.toHexString(c).toUpperCase();
+                                        if (hex.length() == 1) hexEncoded.append('0');
+                                        hexEncoded.append(hex);
+                                    }
                                 }
                                 mSession.write("\033P1+r" + part + "=" + hexEncoded + "\033\\");
                             }

@@ -6,9 +6,18 @@ package com.termux.terminal;
 public class DeviceControlStringTest extends TerminalTestCase {
 
 	private static String hexEncode(String s) {
-		StringBuilder result = new StringBuilder();
-		for (int i = 0; i < s.length(); i++)
-			result.append(String.format("%02X", (int) s.charAt(i)));
+		int len = s.length();
+		StringBuilder result = new StringBuilder(len * 2);
+		for (int i = 0; i < len; i++) {
+			int c = s.charAt(i);
+			if (c < 256) {
+				result.append("0123456789ABCDEF".charAt((c >> 4) & 0xF)).append("0123456789ABCDEF".charAt(c & 0xF));
+			} else {
+				String hex = Integer.toHexString(c).toUpperCase();
+				if (hex.length() == 1) result.append('0');
+				result.append(hex);
+			}
+		}
 		return result.toString();
 	}
 
