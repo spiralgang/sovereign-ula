@@ -36,6 +36,8 @@ import kotlinx.android.synthetic.main.activity_main.* // ktlint-disable no-wildc
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.URL
 import tech.ula.model.entities.App
 import tech.ula.model.entities.ServiceType
 import tech.ula.model.entities.Session
@@ -146,8 +148,10 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
         super.onNewIntent(intent)
         if (intent?.type.equals("settings"))
             navController.navigate(R.id.settings_fragment)
-        else
+        else {
+            checkForUpdates()
             autoStart()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -185,8 +189,10 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
         viewModel.getState().observe(this, stateObserver)
         if (intent?.type.equals("settings"))
             navController.navigate(R.id.settings_fragment)
-        else
+        else {
+            checkForUpdates()
             autoStart()
+        }
     }
 
     private fun setNavStartDestination() {
@@ -736,5 +742,30 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
             }
             else -> true
         }
+    private fun checkForUpdates() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val versionJson = URL("https://raw.githubusercontent.com/spiralgang/sovereign-ula/master/version.json").readText()
+                val latestVersion = Gson().fromJson(versionJson, VersionInfo::class.java).version
+                val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName
+                
+                withContext(Dispatchers.Main) {
+                    if (latestVersion != currentVersion) {
+                        AlertDialog.Builder(this@MainActivity)
+                                .setTitle("Update Available")
+                                .setMessage("A new version of Sovereign ULA is available. Please update to the latest version.")
+                                .setPositiveButton("Update") { _, _ ->
+                                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/spiralgang/sovereign-ula/releases")))
+                                }
+                                .setNegativeButton("Later", null)
+                                .create().show()
+                    }
+                }
+            } catch (e: Exception) {
+                logger.addBreadcrumb(UlaBreadcrumb(className, BreadcrumbType.Error, "Update check failed: ${e.message}"))
+            }
+        }
     }
 }
+
+data class VersionInfo(val version: String)
