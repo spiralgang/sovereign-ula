@@ -1,5 +1,12 @@
 {
-  "capability_level": "1.0",
-  "last_verified_state": "initial",
-  "evolution_history": []
+  "capability_level": "1.1",
+  "last_verified_state": "PR #98 created",
+  "evolution_history": [
+    {
+      "version": "1.1",
+      "change": "Implement In-App Update Prompt",
+      "issue": "#97",
+      "date": "2026-10-21"
+    }
+  ]
 }
